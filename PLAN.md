@@ -3,8 +3,8 @@ Setup Nodejs app from GitHub repo
 Add initial services for Backend using express
 Run MySQL container on Docker with volumes
 Run Redis container on Docker
-Connect application to MySQL and Redis and Create tables //31
-Building API for Create/Get user and add SQL Query for that
+Connect application to MySQL and Redis and Create tables 
+Building API for Create/Get user and add SQL Query for that //1:10:35
 Hash passwords with bcryptjs and add login/signup routes
 Generating and sending JWT Tokens for Auth
 Encrypt Refresh tokens with crypto and store in Redis Cache with TTL
