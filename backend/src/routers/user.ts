@@ -5,6 +5,7 @@ const usersRouter = Router();
 // /api/v1/auth/user
 
 usersRouter.get("/:id", usersHandler.getUser);
-usersRouter.post("/new", usersHandler.createUser);
+usersRouter.post("/signup", usersHandler.createUser);
+usersRouter.post("/login", usersHandler.loginUser);
 
 export default usersRouter;
