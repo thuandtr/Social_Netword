@@ -5,9 +5,9 @@ Run MySQL container on Docker with volumes
 Run Redis container on Docker
 Connect application to MySQL and Redis and Create tables 
 Building API for Create/Get user and add SQL Query for that 
-Hash passwords with bcryptjs and add login/signup routes //1:37:01
-Generating and sending JWT Tokens for Auth
-Encrypt Refresh tokens with crypto and store in Redis Cache with TTL
+Hash passwords with bcryptjs and add login/signup routes 
+Generating and sending JWT Tokens for Auth 
+Encrypt Refresh tokens with crypto and store in Redis Cache with TTL // 2:30:12
 Set tokens in HTTP-Only cookies 
 Starting Next.JS app on frontend and creating login/signup pages
 Introduction to Form Actions (Server Actions and Client Actions)

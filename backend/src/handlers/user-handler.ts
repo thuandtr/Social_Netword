@@ -3,6 +3,8 @@ import { pool } from "../mysql/connection";
 import { GET_USER_BY_EMAIL, GET_USER_BY_ID } from "../mysql/queries";
 import { INSERT_USER_STATEMENT } from "../mysql/mutations";
 import bcrypt from "bcrypt";
+import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
+import { encryptData } from "../encryption";
 
 const getUser = async (req: Request, res: Response) => {
     try {
@@ -13,7 +15,7 @@ const getUser = async (req: Request, res: Response) => {
         const [rows] = await conn.query(GET_USER_BY_ID, [id]);
         const users = rows as any[];
 
-        if(!users || users.length === 0) {
+        if (!users || users.length === 0) {
             return res.status(404).json({ message: "User not found" });
         }
         console.log("User Retrieved:", users);
@@ -52,7 +54,7 @@ const createUser = async (req: Request, res: Response) => {
             return res.status(409).json({ message: `User with this email already exists, userId: ${users[0].id}` });
         }
 
-        const password_hash = await bcrypt.hash(password, 10); 
+        const password_hash = await bcrypt.hash(password, 10);
 
         const conn = await pool.getConnection();
         const [result] = await conn.query(INSERT_USER_STATEMENT, [username, email, password_hash]);
@@ -75,19 +77,19 @@ const loginUser = async (req: Request, res: Response) => {
         }
 
         const users = await getUserByEmail(email);
-        
-        if(!users || users.length === 0) {
+
+        if (!users || users.length === 0) {
             return res.status(404).json({ message: "User not found" });
         }
-        
+
         const user = users[0];
         console.log(user);
 
         const passwordHash = user.password_hash;
-        
+
         // Verify the password
         const isPasswordValid = await bcrypt.compare(password, passwordHash);
-        
+
         if (!isPasswordValid) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -97,6 +99,24 @@ const loginUser = async (req: Request, res: Response) => {
         console.log("Login failed by Error: ", error);
         return res.status(500).json({ message: "Login failed, Please check again your Password" });
         throw error;
+    }
+}
+
+const setAuthToken = async (id: string, email: string, res: Response) => {
+    try {
+        // Generate access token (short-lived, used for API requests)
+        const accessToken = generateJWTToken(id, email, "access");
+        
+        // Generate refresh token (long-lived, used to get new access tokens)
+        const refreshToken = generateJWTToken(id, email, "refresh");
+
+        // Encrypt the refresh token for security before storing
+        const encryptRefreshToken = encryptData(refreshToken);
+        
+        // Store the encrypted refresh token in Redis cache
+        await saveRefreshToken(encryptRefreshToken);
+    } catch (error) {
+        // Empty catch block - no error handling currently implemented
     }
 }
 
