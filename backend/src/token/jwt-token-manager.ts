@@ -21,14 +21,14 @@ accessToken expires — without requiring the user to log in again.
  */
 const generateJWTToken = (id: string, email: string, tokenType: "access" | "refresh") => {
     const token = jwt.sign(
-    {
-        id,
-        email,
-    },
-    process.env.JWT_SECRET as string,
-    {
-        expiresIn: tokenType === "access" ? "1h" : "7d"
-    });
+        {
+            id,
+            email,
+        },
+        process.env.JWT_SECRET as string,
+        {
+            expiresIn: tokenType === "access" ? "1h" : "7d"
+        });
 
     return token;
 }
@@ -40,40 +40,39 @@ const generateJWTToken = (id: string, email: string, tokenType: "access" | "refr
  * - Encrypts token before storing in Redis
  * - Sets automatic expiration based on token's exp time
  */
-const saveRefreshToken = async (token: string) => {
-    // Decode the JWT token without verification to extract the payload data
-    // { json: true } returns parsed object instead of string
-    const decodedData = jwt.decode(token, { json: true });
-    /*
-    decodedData = {
-        id: "123",
-        email: "user@example.com", 
-        iat: 1698768000,  // issued at timestamp
-        exp: 1699372800   // expiration timestamp (7 days later)
-    }
-    */ 
-    // Check if token decoding was successful, throw error if token is malformed
-    if (!decodedData) throw new Error("Invalid token");
-
-    // Generate a Redis key using the user ID from the decoded token payload
-    // This creates a unique key like "refresh_token:user_123" for storage
-    const key = generateRedisKey(decodedData.id);
-    
-    // Calculate Time To Live (TTL) in seconds based on token's expiration timestamp
-    // Uses the 'exp' claim from JWT payload (! asserts it exists)
-    const TTL = generateTTL(decodedData.exp!);
-
+const saveRefreshToken = async (token: string, encryptedToken: string) => {
     try {
+        // Decode the JWT token without verification to extract the payload data
+        // { json: true } returns parsed object instead of string
+        const decodedData = jwt.decode(token, { json: true });
+        /*
+        decodedData = {
+            id: "123",
+            email: "user@example.com", 
+            iat: 1698768000,  // issued at timestamp
+            exp: 1699372800   // expiration timestamp (7 days later)
+        }
+        */
+        // Check if token decoding was successful, throw error if token is malformed
+        if (!decodedData) throw new Error("Invalid token");
+
+        // Generate a Redis key using the user ID from the decoded token payload
+        // This creates a unique key like "refresh_token:user_123" for storage
+        const key = generateRedisKey(decodedData.id);
+
+        // Calculate Time To Live (TTL) in seconds based on token's expiration timestamp
+        // Uses the 'exp' claim from JWT payload (! asserts it exists)
+        const TTL = generateTTL(decodedData.exp!);
         // Store the token in Redis: encrypt it first, then save with auto-expiration
         // setCache(key, value, ttl) - stores encrypted token that expires automatically
-        await setCache(key, encryptData(token), TTL);
-        
+        await setCache(key, encryptedToken, TTL);
+
         // Log success message for debugging/monitoring purposes
         console.log("Refresh token saved in Redis");
     } catch (error) {
         // Log any errors that occur during Redis storage operation
         console.error("Error saving refresh token:", error);
-        
+
         // Re-throw the error so calling function can handle it appropriately
         throw error;
     }

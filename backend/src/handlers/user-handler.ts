@@ -6,6 +6,93 @@ import bcrypt from "bcrypt";
 import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
 import { encryptData } from "../encryption";
 
+/**
+ * Sets authentication cookies for access and refresh tokens
+ * @param accessToken - JWT access token for API authentication
+ * @param refreshToken - Encrypted refresh token for token renewal
+ * @param res - Express response object to set cookies on
+ */
+const setCookies = (
+    accessToken: string, 
+    refreshToken: string,
+    res: Response
+) => {
+    // Clear any existing access token cookie to prevent conflicts
+    res.clearCookie('access_token', { 
+        domain: "localhost",  // Restrict cookie to localhost domain
+        httpOnly: true,       // Prevent JavaScript access (XSS protection)
+        path: "/"            // Cookie available for all paths
+    });
+
+    // Clear any existing refresh token cookie to prevent conflicts
+    res.clearCookie('refresh_token', { 
+        domain: "localhost",  // Restrict cookie to localhost domain
+        httpOnly: true,       // Prevent JavaScript access (XSS protection)
+        path: "/"            // Cookie available for all paths
+    });
+
+    // Calculate expiration time for access token (current time + 1 hour)
+    const expireAccessToken = new Date(new Date().getTime() + (60 * 60 * 1000)); // 1 hour
+    
+    // Set the access token cookie with security configurations
+    res.cookie("access_token", accessToken, {
+        domain: "localhost",           // Restrict to localhost domain
+        httpOnly: true,               // Prevent client-side JavaScript access
+        path: "/",                    // Available for all application paths
+        expires: expireAccessToken,   // Auto-expire after 1 hour
+        sameSite: 'lax',             // CSRF protection - allows cross-site navigation
+    });
+
+    // Calculate expiration time for refresh token (current time + 30 days)
+    const expireRefreshToken = new Date(new Date().getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+    
+    // Set the refresh token cookie with security configurations
+    res.cookie("refresh_token", refreshToken, {
+        domain: "localhost",           // Restrict to localhost domain
+        httpOnly: true,               // Prevent client-side JavaScript access
+        path: "/",                    // Available for all application paths
+        expires: expireRefreshToken,  // Auto-expire after 30 days
+        sameSite: 'lax',             // CSRF protection - allows cross-site navigation
+    });
+
+    return; // Explicit return (function completes successfully)
+}
+
+/**
+ * Generates and sets authentication tokens for a user session
+ * @param id - User's unique identifier from database
+ * @param email - User's email address for token payload
+ * @param res - Express response object to set cookies on
+ */
+const setAuthTokens = async (id: string, email: string, res: Response) => {
+    try {
+        // Generate access token (short-lived, used for API requests)
+        // Contains user ID and email, expires in 1 hour
+        const accessToken = generateJWTToken(id, email, "access");
+        
+        // Generate refresh token (long-lived, used to get new access tokens)
+        // Contains user ID and email, expires in 30 days
+        const refreshToken = generateJWTToken(id, email, "refresh");
+
+        // Encrypt the refresh token for security before storing
+        // Adds extra layer of protection against token theft
+        const encryptRefreshToken = encryptData(refreshToken);
+        
+        // Store the encrypted refresh token in Redis cache
+        // Maps original token to encrypted version for validation
+        await saveRefreshToken(refreshToken, encryptRefreshToken);
+
+        // Set both tokens as HTTP-only cookies in the browser
+        // Uses encrypted refresh token for additional security
+        setCookies(accessToken, encryptRefreshToken, res);
+    } catch (error) {
+        // Log any errors that occur during token generation/storage
+        console.log("Error setting auth token:", error);
+        // Re-throw error to be handled by calling function
+        throw error;
+    }
+}
+
 const getUser = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
@@ -58,7 +145,8 @@ const createUser = async (req: Request, res: Response) => {
 
         const conn = await pool.getConnection();
         const [result] = await conn.query(INSERT_USER_STATEMENT, [username, email, password_hash]);
-        console.log("User Created:", result);
+        const newUserId = (result as any).insertId;
+        await setAuthTokens(newUserId, email, res);
 
         return res.status(201).json({ message: "User Created", result });
     } catch (error) {
@@ -71,7 +159,6 @@ const createUser = async (req: Request, res: Response) => {
 const loginUser = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
-        console.log(email, password);
         if (!email || !password) {
             return res.status(422).json({ message: "Email and Password are required" });
         }
@@ -83,7 +170,6 @@ const loginUser = async (req: Request, res: Response) => {
         }
 
         const user = users[0];
-        console.log(user);
 
         const passwordHash = user.password_hash;
 
@@ -94,6 +180,8 @@ const loginUser = async (req: Request, res: Response) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
+        await setAuthTokens(user.id, user.email, res);
+
         return res.status(200).json({ message: "Login successful", user: { username: user.username, email: user.email } });
     } catch (error) {
         console.log("Login failed by Error: ", error);
@@ -102,22 +190,6 @@ const loginUser = async (req: Request, res: Response) => {
     }
 }
 
-const setAuthToken = async (id: string, email: string, res: Response) => {
-    try {
-        // Generate access token (short-lived, used for API requests)
-        const accessToken = generateJWTToken(id, email, "access");
-        
-        // Generate refresh token (long-lived, used to get new access tokens)
-        const refreshToken = generateJWTToken(id, email, "refresh");
 
-        // Encrypt the refresh token for security before storing
-        const encryptRefreshToken = encryptData(refreshToken);
-        
-        // Store the encrypted refresh token in Redis cache
-        await saveRefreshToken(encryptRefreshToken);
-    } catch (error) {
-        // Empty catch block - no error handling currently implemented
-    }
-}
 
 export { getUser, createUser, loginUser };

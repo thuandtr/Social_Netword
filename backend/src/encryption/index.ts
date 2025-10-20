@@ -4,6 +4,9 @@
 // IV => 16 Bytes Base64 -> convert into Buffer -> dynamic -> BUFFER
 
 import crypto from "crypto";
+import { config } from "dotenv";
+
+config();
 
 const key = Buffer.from(process.env.ENCRYPTION_KEY!, "base64");
 const iv = crypto.randomBytes(16);

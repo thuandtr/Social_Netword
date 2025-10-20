@@ -3,5 +3,5 @@ export const GET_USER_BY_ID = `
 `;
 
 export const GET_USER_BY_EMAIL = `
-    SELECT username, email, password_hash FROM users WHERE email = ?;
+    SELECT username, email, password_hash, id FROM users WHERE email = ?;
 `;
