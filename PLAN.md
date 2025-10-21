@@ -9,7 +9,7 @@ Hash passwords with bcryptjs and add login/signup routes
 Generating and sending JWT Tokens for Auth 
 Encrypt Refresh tokens with crypto and store in Redis Cache with TTL 
 Set tokens in HTTP-Only cookies // 2:54:39
-Starting Next.JS app on frontend and creating login/signup pages
+Starting React.JS app on frontend and creating login/signup pages
 Introduction to Form Actions (Server Actions and Client Actions)
 Creating Schema using ZOD schema
 Creating Login and Signup Server Actions (Form Actions) with axios interceptors
@@ -19,5 +19,5 @@ Creating profile access route with middleware on backend.
 Designing webpages with framer-motion
 Optimizing app
 Creating Dockerfile for backend and frontend
-Creating docker-compose.yml for Nextjs, nodejs apps with adding separate envs for db
+Creating docker-compose.yml for Reactjs, nodejs apps with adding separate envs for db
 Summary and Next Steps
