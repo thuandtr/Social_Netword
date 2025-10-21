@@ -33,6 +33,20 @@ const generateJWTToken = (id: string, email: string, tokenType: "access" | "refr
     return token;
 }
 
+export const verifyAndDecode = (token: string) => {
+    return new Promise((res, rej) => {
+        jwt.verify(token, process.env.JWT_SECRET as string, (err, payload) => {
+            if (err) {
+                console.log("JWT verification error:", err);
+                rej(err);
+            } else {
+                console.log("JWT payload:", payload);
+                res(payload);
+            }
+        });
+    });
+}
+
 /**
  * Saves refresh token to Redis with encryption
  * - Decodes token to get user ID and expiration time

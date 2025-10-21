@@ -3,7 +3,8 @@
 import { z } from "zod";
 import { LoginFormSchema, SignupFormSchema } from "../lib/definitions";
 import axios from "axios";
-
+import setCookieParse from 'set-cookie-parser';
+import { cookies } from 'next/headers'
 
 export const loginAction = async (prevState: unknown, formData: FormData) => {
     console.log("prevState:", prevState);
@@ -27,6 +28,16 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
             password
         });
         const data = await res.data;
+
+        console.log("Login response data:", data);
+        console.log("Login response headers:", res.headers['set-cookie']);
+
+        const cookieStore = await cookies();
+        const cookieData = setCookieParse(res.headers["set-cookie"]!);
+        cookieData.forEach(cookie => 
+            // @ts-ignore
+            cookieStore.set(cookie.name, cookie.value, {...cookie})
+        );
 
         return data;
     } catch (error) {

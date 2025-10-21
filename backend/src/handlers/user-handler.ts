@@ -192,4 +192,4 @@ const loginUser = async (req: Request, res: Response) => {
 
 
 
-export { getUser, createUser, loginUser };
+export { getUser, createUser, loginUser, setCookies };

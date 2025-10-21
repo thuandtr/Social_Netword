@@ -27,6 +27,14 @@ app.use(helmet());
 */
 app.use(morgan('dev'));
 
+app.use((req, res, next) => {
+    console.log("Request Received:", req.method, req.url);
+    console.log("Request URL:", req.baseUrl + req.url);
+    console.log("Request Headers:", req.headers);
+    console.log(JSON.stringify(req.cookies));
+    next();
+})
+
 app.use("/api/v1/auth", appRouter);
 
 export default app;

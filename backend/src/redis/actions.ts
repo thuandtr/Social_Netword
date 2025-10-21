@@ -1,5 +1,4 @@
 import { redisClient } from './connection';
-import { generateRedisKey , generateTTL } from '../utils/helpers';
 
 // Available: setCache function - stores data in Redis with expiry
 const setCache = async (key: string, data: string, EX: number) => {
