@@ -2,6 +2,7 @@
 import axios from "axios";
 // Import Next.js cookies utility for server-side cookie access
 import { cookies } from 'next/headers'
+import { redirect } from "next/navigation";
 
 // Export an async function to validate user authentication tokens
 export const validateAuth = async () => {
@@ -11,19 +12,67 @@ export const validateAuth = async () => {
     const cookieStore = await cookies();
 
     try {
-        const URL = process.env.LOCAL_BACKEND_URL + '/user/validate-tokens' || "http://localhost:5000/api/v1/auth/user/validate/tokens";
+        const URL = process.env.LOCAL_BACKEND_URL + '/validate/tokens' || "http://localhost:5000/api/v1/auth/validate/tokens";
+
+        // Get token values, return null if they don't exist
+        const accessToken = cookieStore.get('access_token')?.value;
+        const refreshToken = cookieStore.get('refresh_token')?.value;
+
+        console.log("Access Token:", accessToken);
+        console.log("Refresh Token:", refreshToken);
+
+        // If refresh token is missing, we can't authenticate at all
+        if (!refreshToken) {
+            console.log("Missing refresh token - cannot authenticate");
+            redirect('/login');
+            // return { success: false, message: "Missing authentication tokens" };
+        }
+
+        // If access token is missing but refresh token exists, let backend handle refresh
+        // if (!accessToken) {
+        //     console.log("Missing access token but refresh token exists - attempting refresh");
+        // }
 
         // Make a PUT request to the backend validation endpoint
         const res = await axios.put(URL, {}, {
             withCredentials: true,
             headers: {
                 // Send both access and refresh tokens in Authorization header
-                // Extract token values from cookies, using optional chaining to avoid errors if cookies don't exist
-                Authorization: `access_token=${cookieStore.get('access_token')?.value}, refresh_token=${cookieStore.get('refresh_token')?.value}`,
+                // Use empty string for access token if missing, backend will handle refresh
+                Authorization: `access_token=${accessToken || ''}, refresh_token=${refreshToken}`,
             }
         });
 
         const data = await res.data;
+
+        if (data.message === "Tokens refreshed successfully") {
+            console.log("Tokens were refreshed successfully.");
+            console.log("✅ NEW ACCESS TOKEN:", data.tokens?.accessToken);
+            console.log("✅ NEW REFRESH TOKEN:", data.tokens?.refreshToken);
+            console.log("✅ TOKEN EXPIRES IN:", data.tokens?.expiresIn);
+
+            // Check if cookies were set in the response headers
+            const setCookieHeader = res.headers['set-cookie'];
+            if (setCookieHeader) {
+                console.log("Set-Cookie headers received:", setCookieHeader);
+                
+                const newAccessToken = setCookieHeader.find(cookie =>
+                    cookie.startsWith('access_token=')
+                )?.split('=')[1]?.split(';')[0];
+
+                const newRefreshToken = setCookieHeader.find(cookie => 
+                    cookie.startsWith('refresh_token=')
+                )?.split('=')[1]?.split(';')[0];
+
+                if(newAccessToken && newRefreshToken) {
+                    console.log("✅ New tokens received in cookies for future requests.");
+                } else {
+                    console.log("⚠️ New tokens were generated but not found in Set-Cookie headers");
+                }
+            } else {
+                console.log("⚠️ No Set-Cookie headers found in response");
+            }
+        }
         console.log("Validation response data:", data);
 
         return data;

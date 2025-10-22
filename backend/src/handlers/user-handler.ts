@@ -5,6 +5,7 @@ import { INSERT_USER_STATEMENT } from "../mysql/mutations";
 import bcrypt from "bcrypt";
 import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
 import { encryptData } from "../encryption";
+import { TOKEN_CONFIG, getCookieExpiration } from "../config/token-config";
 
 /**
  * Sets authentication cookies for access and refresh tokens
@@ -19,40 +20,34 @@ const setCookies = (
 ) => {
     // Clear any existing access token cookie to prevent conflicts
     res.clearCookie('access_token', { 
-        domain: "localhost",  // Restrict cookie to localhost domain
         httpOnly: true,       // Prevent JavaScript access (XSS protection)
-        path: "/"            // Cookie available for all paths
+        path: "/",            // Cookie available for all paths
+        sameSite: 'lax'       // CSRF protection
     });
 
     // Clear any existing refresh token cookie to prevent conflicts
     res.clearCookie('refresh_token', { 
-        domain: "localhost",  // Restrict cookie to localhost domain
         httpOnly: true,       // Prevent JavaScript access (XSS protection)
-        path: "/"            // Cookie available for all paths
+        path: "/",            // Cookie available for all paths
+        sameSite: 'lax'       // CSRF protection
     });
 
-    // Calculate expiration time for access token (current time + 1 hour)
-    const expireAccessToken = new Date(new Date().getTime() + (60 * 60 * 1000)); // 1 hour
+    // Calculate expiration time for access token using centralized config
+    const expireAccessToken = getCookieExpiration(TOKEN_CONFIG.ACCESS_TOKEN_COOKIE_MAX_AGE);
     
     // Set the access token cookie with security configurations
     res.cookie("access_token", accessToken, {
-        domain: "localhost",           // Restrict to localhost domain
-        httpOnly: true,               // Prevent client-side JavaScript access
-        path: "/",                    // Available for all application paths
-        expires: expireAccessToken,   // Auto-expire after 1 hour
-        sameSite: 'lax',             // CSRF protection - allows cross-site navigation
+        ...TOKEN_CONFIG.COOKIE_SETTINGS,
+        expires: expireAccessToken,   // Auto-expire after configured time
     });
 
-    // Calculate expiration time for refresh token (current time + 30 days)
-    const expireRefreshToken = new Date(new Date().getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+    // Calculate expiration time for refresh token using centralized config
+    const expireRefreshToken = getCookieExpiration(TOKEN_CONFIG.REFRESH_TOKEN_COOKIE_MAX_AGE);
     
     // Set the refresh token cookie with security configurations
     res.cookie("refresh_token", refreshToken, {
-        domain: "localhost",           // Restrict to localhost domain
-        httpOnly: true,               // Prevent client-side JavaScript access
-        path: "/",                    // Available for all application paths
-        expires: expireRefreshToken,  // Auto-expire after 30 days
-        sameSite: 'lax',             // CSRF protection - allows cross-site navigation
+        ...TOKEN_CONFIG.COOKIE_SETTINGS,
+        expires: expireRefreshToken,  // Auto-expire after configured time
     });
 
     return; // Explicit return (function completes successfully)
@@ -94,11 +89,37 @@ const setAuthTokens = async (id: string, email: string, res: Response) => {
 }
 
 const getUser = async (req: Request, res: Response) => {
+    let conn;
+    try {
+        const id = res.locals.jwtData.id;
+
+        if (!id || isNaN(Number(id))) return res.status(400).json({ message: "User ID is required"});
+
+        conn = await pool.getConnection();
+        const [rows] = await conn.query(GET_USER_BY_ID, [id]);
+        const users = rows as any[];
+
+        if (!users || users.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        // console.log("User Retrieved:", users);
+
+        return res.status(200).json({ message: "User Retrieved", user: users[0] });
+    } catch (error) {
+        console.log("Error occured", error);
+        return res.status(500).json({ message: "Unexprected Error occurred, Try agian later" });
+    } finally {
+        if (conn) conn.release();
+    }
+}
+
+const getUserById = async (req: Request, res: Response) => {
+    let conn;
     try {
         const id = req.params.id;
         if (!id || isNaN(Number(id))) return res.status(400).json({ message: "User ID is required" });
 
-        const conn = await pool.getConnection();
+        conn = await pool.getConnection();
         const [rows] = await conn.query(GET_USER_BY_ID, [id]);
         const users = rows as any[];
 
@@ -111,23 +132,29 @@ const getUser = async (req: Request, res: Response) => {
     } catch (error) {
         console.log("Error occured", error);
         return res.status(500).json({ message: "Unexprected Error occurred, Try agian later" });
-        throw error;
+    } finally {
+        if (conn) conn.release();
     }
 }
 
 const getUserByEmail = async (email: string) => {
+    let conn;
     try {
-        const conn = await pool.getConnection();
+        conn = await pool.getConnection();
         const [rows] = await conn.query(GET_USER_BY_EMAIL, [email]);
 
         const users = rows as any[];
         return users;
     } catch (error) {
         console.log("Error occurred", error);
+        throw error;
+    } finally {
+        if (conn) conn.release();
     }
 }
 
 const createUser = async (req: Request, res: Response) => {
+    let conn;
     try {
         const { username, email, password } = req.body;
 
@@ -143,7 +170,7 @@ const createUser = async (req: Request, res: Response) => {
 
         const password_hash = await bcrypt.hash(password, 10);
 
-        const conn = await pool.getConnection();
+        conn = await pool.getConnection();
         const [result] = await conn.query(INSERT_USER_STATEMENT, [username, email, password_hash]);
         const newUserId = (result as any).insertId;
         await setAuthTokens(newUserId, email, res);
@@ -152,7 +179,8 @@ const createUser = async (req: Request, res: Response) => {
     } catch (error) {
         console.log("Error occured", error);
         return res.status(500).json({ message: "Unexprected Error occurred, Try again later" });
-        throw error;
+    } finally {
+        if (conn) conn.release();
     }
 }
 
@@ -190,6 +218,4 @@ const loginUser = async (req: Request, res: Response) => {
     }
 }
 
-
-
-export { getUser, createUser, loginUser, setCookies };
+export { getUser, createUser, loginUser, setCookies, getUserById };

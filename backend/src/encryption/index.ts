@@ -9,7 +9,7 @@ import { config } from "dotenv";
 config();
 
 const key = Buffer.from(process.env.ENCRYPTION_KEY!, "base64");
-const iv = crypto.randomBytes(16);
+const iv = Buffer.from(process.env.ENCRYPTION_IV || "1234567890123456", "utf-8"); // Fixed IV for consistent encryption/decryption
 const algorithm = "aes-256-cbc";
 
 export const encryptData = (data: string) => {

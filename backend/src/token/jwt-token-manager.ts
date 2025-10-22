@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { generateRedisKey, generateTTL } from "../utils/helpers";
 import { encryptData } from "../encryption";
 import { setCache } from "../redis/actions";
+import { TOKEN_CONFIG } from "../config/token-config";
 
 /*
 An accessToken is a short-lived access token that is issued to a user after a successful login. 
@@ -16,8 +17,9 @@ accessToken expires — without requiring the user to log in again.
 /**
  * Creates a JWT token with user data
  * - Access tokens expire in 1 hour (for API requests)
- * - Refresh tokens expire in 7 days (to get new access tokens)
+ * - Refresh tokens expire in 30 days (to get new access tokens)
  * - Signs token with JWT_SECRET for security
+ * - Uses centralized TOKEN_CONFIG for consistent lifetimes
  */
 const generateJWTToken = (id: string, email: string, tokenType: "access" | "refresh") => {
     const token = jwt.sign(
@@ -27,7 +29,9 @@ const generateJWTToken = (id: string, email: string, tokenType: "access" | "refr
         },
         process.env.JWT_SECRET as string,
         {
-            expiresIn: tokenType === "access" ? "1h" : "7d"
+            expiresIn: tokenType === "access" 
+                ? TOKEN_CONFIG.ACCESS_TOKEN_EXPIRES_IN 
+                : TOKEN_CONFIG.REFRESH_TOKEN_EXPIRES_IN
         });
 
     return token;
@@ -79,10 +83,15 @@ const saveRefreshToken = async (token: string, encryptedToken: string) => {
         const TTL = generateTTL(decodedData.exp!);
         // Store the token in Redis: encrypt it first, then save with auto-expiration
         // setCache(key, value, ttl) - stores encrypted token that expires automatically
+        console.log("=== SAVING REFRESH TOKEN ===");
+        console.log("Redis Key:", key);
+        console.log("Encrypted Token to Save:", encryptedToken);
+        console.log("TTL (seconds):", TTL);
+        
         await setCache(key, encryptedToken, TTL);
 
         // Log success message for debugging/monitoring purposes
-        console.log("Refresh token saved in Redis");
+        console.log("✅ Refresh token saved in Redis successfully");
     } catch (error) {
         // Log any errors that occur during Redis storage operation
         console.error("Error saving refresh token:", error);

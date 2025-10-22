@@ -5,6 +5,7 @@ import { LoginFormSchema, SignupFormSchema } from "../lib/definitions";
 import axios from "axios";
 import setCookieParse from 'set-cookie-parser';
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation';
 
 export const loginAction = async (prevState: unknown, formData: FormData) => {
     console.log("prevState:", prevState);
@@ -34,12 +35,21 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
 
         const cookieStore = await cookies();
         const cookieData = setCookieParse(res.headers["set-cookie"]!);
-        cookieData.forEach(cookie => 
-            // @ts-ignore
-            cookieStore.set(cookie.name, cookie.value, {...cookie})
-        );
+        cookieData.forEach((cookie) => {
+            // Keep cookies httpOnly for security (matching backend configuration)
+            cookieStore.set(cookie.name, cookie.value, {
+                path: cookie.path || '/',
+                maxAge: cookie.maxAge,
+                expires: cookie.expires,
+                secure: cookie.secure,
+                sameSite: (cookie.sameSite as "lax" | "strict" | "none") || "lax",
+                // Keep httpOnly true for security - cookies are handled server-side only
+                httpOnly: cookie.httpOnly !== false // Use the same setting as backend
+            });
+        });
 
-        return data;
+        redirect('/profile');
+        // return data;
     } catch (error) {
         console.error("Login error:", error);
         throw error;
@@ -72,8 +82,7 @@ export const signupAction = async (prevState: unknown, formData: FormData) => {
             password
         });
         const data = await res.data;
-
-        return data;
+        redirect('/profile');
     } catch (error) {
         console.error("Signup error:", error);
         throw error;
