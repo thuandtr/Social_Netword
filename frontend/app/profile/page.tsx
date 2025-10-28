@@ -20,7 +20,13 @@ const getUser = async () => {
   const accessToken = cookieStore.get("access_token")?.value;
   const refreshToken = cookieStore.get("refresh_token")?.value;
 
-  const res = await axios.get('/user/me', {
+  if (!accessToken || !refreshToken) {
+    console.log("Missing tokens in profile page");
+    redirect('/login');
+  }
+
+  try {
+    const res = await axios.get('/user/me', {
       headers: {
         // Send both access and refresh tokens in Authorization header
         Authorization: `access_token=${accessToken}, refresh_token=${refreshToken}`,
@@ -31,12 +37,20 @@ const getUser = async () => {
     const data = (await res.data) as Response;
     console.log("Profile page user data:", data);
     return data;
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    redirect('/login');
+  }
 }
 
 const Profile = async () => {
   const userData = await getUser();
+
+  console.log("Rendering ProfileCard with props:", userData.user);
   return (
-    <div><ProfileCard {...userData.user} /></div>
+    <div className='w-full flex items-center justify-center min-h-dvh py-8'>
+      <ProfileCard {...userData.user} />
+    </div>
   )
 }
 

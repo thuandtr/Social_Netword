@@ -146,7 +146,7 @@ const getUserByEmail = async (email: string) => {
         const users = rows as any[];
         return users;
     } catch (error) {
-        console.log("Error occurred", error);
+        console.log("Error occurred in getUserByEmail:", error);
         throw error;
     } finally {
         if (conn) conn.release();
@@ -198,8 +198,11 @@ const loginUser = async (req: Request, res: Response) => {
         }
 
         const user = users[0];
-
         const passwordHash = user.password_hash;
+
+        if (!passwordHash) {
+            return res.status(500).json({ message: "User data corrupted" });
+        }
 
         // Verify the password
         const isPasswordValid = await bcrypt.compare(password, passwordHash);
@@ -214,7 +217,6 @@ const loginUser = async (req: Request, res: Response) => {
     } catch (error) {
         console.log("Login failed by Error: ", error);
         return res.status(500).json({ message: "Login failed, Please check again your Password" });
-        throw error;
     }
 }
 

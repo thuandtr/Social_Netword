@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login</title>
+</head>
+<body>
+    <h1>Test Login Form</h1>
+    <form action="http://localhost:3000/login" method="POST">
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="testuserunique@test.com" required>
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" value="testpass123" required>
+        </div>
+        <button type="submit">Login</button>
+    </form>
+
+    <script>
+        // Handle form submission with JavaScript to see the response
+        document.querySelector('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch(e.target.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const text = await response.text();
+                console.log('Response body:', text);
+                
+                document.body.innerHTML += `
+                    <div>
+                        <h2>Response:</h2>
+                        <p>Status: ${response.status}</p>
+                        <pre>${text}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                document.body.innerHTML += `
+                    <div>
+                        <h2>Error:</h2>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

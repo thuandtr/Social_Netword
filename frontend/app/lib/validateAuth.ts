@@ -12,7 +12,9 @@ export const validateAuth = async () => {
     const cookieStore = await cookies();
 
     try {
-        const URL = process.env.LOCAL_BACKEND_URL + '/validate/tokens' || "http://localhost:5000/api/v1/auth/validate/tokens";
+        // In Docker, use backend service name; outside Docker, use localhost
+        const backendURL = process.env.LOCAL_BACKEND_URL || process.env.PROD_BACKEND_URL || "http://backend:5000/api/v1/auth";
+        const URL = backendURL + '/validate/tokens';
 
         // Get token values, return null if they don't exist
         const accessToken = cookieStore.get('access_token')?.value;
@@ -24,8 +26,7 @@ export const validateAuth = async () => {
         // If refresh token is missing, we can't authenticate at all
         if (!refreshToken) {
             console.log("Missing refresh token - cannot authenticate");
-            redirect('/login');
-            // return { success: false, message: "Missing authentication tokens" };
+            return { success: false, message: "Missing authentication tokens" };
         }
 
         // If access token is missing but refresh token exists, let backend handle refresh

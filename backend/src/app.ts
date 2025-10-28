@@ -43,7 +43,8 @@ app.use((req, res, next) => {
     console.log("Request Received:", req.method, req.url);
     console.log("Request URL:", req.baseUrl + req.url);
     console.log("Request Headers:", req.headers);
-    console.log(JSON.stringify(req.cookies));
+    console.log("Request Body:", JSON.stringify(req.body));
+    console.log("Request Cookies:", JSON.stringify(req.cookies));
     next();
 })
 

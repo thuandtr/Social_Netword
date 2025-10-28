@@ -11,6 +11,9 @@ type props = {
             password?: { errors: string[] } | undefined;
         } | undefined;
         message?: string | undefined;
+        error?: string | undefined;
+        type?: string | undefined;
+        success?: boolean | undefined;
     }>;
 }
 
@@ -22,7 +25,38 @@ const AuthForm = ({ isSignup, action }: props) => {
     return (
         <section className='w-1/4'>
             <form action={formAction}>
-                State: {JSON.stringify(state)}
+                {/* Show error messages in a user-friendly way */}
+                {state?.error && (
+                    <div className="mb-4 p-3 rounded-md bg-red-500/10 border border-red-500/20">
+                        <p className="text-sm text-red-400">
+                            {state.error}
+                        </p>
+                        {state.type === "auth_error" && (
+                            <p className="text-xs text-red-300 mt-1">
+                                Please check your email and password, or try creating a new account.
+                            </p>
+                        )}
+                    </div>
+                )}
+                
+                {/* Show success messages */}
+                {state?.success && (
+                    <div className="mb-4 p-3 rounded-md bg-green-500/10 border border-green-500/20">
+                        <p className="text-sm text-green-400">
+                            {state.message}
+                        </p>
+                    </div>
+                )}
+                
+                {/* Debug info - remove in production */}
+                {process.env.NODE_ENV === 'development' && (
+                    <details className="mb-4">
+                        <summary className="text-xs text-gray-500 cursor-pointer">Debug State</summary>
+                        <pre className="text-xs text-gray-400 mt-2 p-2 bg-gray-800 rounded">
+                            {JSON.stringify(state, null, 2)}
+                        </pre>
+                    </details>
+                )}
                 <div className="space-y-12">
                     <div className="border-b border-white/10 pb-12">
                         <h2 className="text-base/7 font-semibold text-white">
