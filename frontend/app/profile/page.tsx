@@ -20,16 +20,19 @@ const getUser = async () => {
   const accessToken = cookieStore.get("access_token")?.value;
   const refreshToken = cookieStore.get("refresh_token")?.value;
 
-  if (!accessToken || !refreshToken) {
-    console.log("Missing tokens in profile page");
+  // Only redirect if BOTH tokens are missing
+  // If just access token is missing, the backend will refresh it
+  if (!refreshToken) {
+    console.log("Missing refresh token in profile page - cannot authenticate");
     redirect('/login');
   }
 
   try {
     const res = await axios.get('/user/me', {
       headers: {
-        // Send both access and refresh tokens in Authorization header
-        Authorization: `access_token=${accessToken}, refresh_token=${refreshToken}`,
+        // Send both tokens - if access token is missing, pass empty string
+        // Backend middleware will handle token refresh
+        Authorization: `access_token=${accessToken || ''}, refresh_token=${refreshToken}`,
       },
       withCredentials: true,
     });
