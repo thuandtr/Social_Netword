@@ -1,8 +1,14 @@
 import axios from "axios";
 
-axios.defaults.baseURL = process.env.NODE_ENV === "production" ? 
-    process.env.PROD_BACKEND_URL : 
-    (process.env.LOCAL_BACKEND_URL || "http://localhost:5000/api/v1/auth");
+// Prefer a single public API URL when provided, then fall back to env-specific URLs
+const resolvedBaseURL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "production"
+    ? process.env.PROD_BACKEND_URL
+    : process.env.LOCAL_BACKEND_URL) ||
+  "http://localhost:5000/api/v1/auth";
+
+axios.defaults.baseURL = resolvedBaseURL;
 
 axios.defaults.withCredentials = true;
 
