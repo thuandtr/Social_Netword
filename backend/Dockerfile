@@ -35,6 +35,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 
+# Create uploads directory with proper permissions
+RUN mkdir -p /app/uploads && chown -R backend:nodejs /app/uploads
+
 USER backend
 
 EXPOSE 5000

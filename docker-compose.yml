@@ -61,6 +61,8 @@ services:
       FRONTEND_URL: http://localhost:3000
       REDIS_HOST: redis
       REDIS_PORT: 6379
+    volumes:
+      - ./backend/uploads:/app/uploads  # Changed to bind mount so uploads persist on host
     depends_on:
       mysql:
         condition: service_healthy
@@ -80,6 +82,7 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://backend:5000/api/v1/auth
       PROD_BACKEND_URL: http://backend:5000/api/v1/auth
       LOCAL_BACKEND_URL: http://backend:5000/api/v1/auth
     depends_on:

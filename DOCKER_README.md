@@ -32,6 +32,7 @@ This document explains how to run the Auth MERN application using Docker and Doc
 - **Build Context:** `./backend`
 - **Dependencies:** MySQL, Redis
 - **Health Checks:** Waits for MySQL and Redis to be ready
+- **File Uploads:** Uses persistent volume for uploaded files at `/app/uploads`
 
 ### Frontend (Next.js)
 - **Port:** 3000
@@ -50,6 +51,16 @@ This document explains how to run the Auth MERN application using Docker and Doc
 - **Port:** 6379
 - **Version:** Redis 7 (Alpine)
 - **Persistence:** Data stored in Docker volume
+
+## Volumes
+
+The application uses three persistent Docker volumes:
+
+1. **mysql_data**: Stores MySQL database files
+2. **redis_data**: Stores Redis cache data
+3. **uploads_data**: Stores user-uploaded files (avatars, images, etc.)
+
+These volumes ensure data persists even when containers are stopped or removed.
 
 ## Environment Variables
 
@@ -92,6 +103,15 @@ docker-compose up --build
 ### Remove volumes (WARNING: This will delete database data):
 ```bash
 docker-compose down -v
+```
+
+### View uploaded files:
+```bash
+# List uploaded files in the volume
+docker exec -it auth_backend ls -la /app/uploads
+
+# Copy a file from the uploads volume to your local machine
+docker cp auth_backend:/app/uploads/filename.jpg ./local-filename.jpg
 ```
 
 ## Development vs Production

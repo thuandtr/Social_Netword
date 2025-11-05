@@ -38,6 +38,12 @@ const ProfileCard = (props: ProfileCardProps) => {
                             src={props.details.avatar_url} 
                             alt={`${props.username}'s avatar`}
                             className="size-24 rounded-full object-cover border-2 border-white/20"
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                                console.error('Failed to load avatar from:', props.details?.avatar_url);
+                                // Hide image on error
+                                e.currentTarget.style.display = 'none';
+                            }}
                         />
                     </div>
                 )}

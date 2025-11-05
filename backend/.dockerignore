@@ -11,3 +11,7 @@ coverage
 .idea
 .DS_Store
 Thumbs.db
+uploads
+*.md
+PLAN.md
+TOKEN_OPTIMIZATION.md

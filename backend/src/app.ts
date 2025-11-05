@@ -53,9 +53,14 @@ app.use((req, res, next) => {
 
 app.use("/api/v1/auth", appRouter);
 
-// Serve uploaded files statically
+// Serve uploaded files statically with CORS support
 // This exposes files stored under the "uploads" directory at /uploads/*
-app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+app.use('/uploads', cors({
+    origin: process.env.NODE_ENV === 'production' ? 
+        process.env.FRONTEND_URL : 
+        ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: false, // No credentials needed for public images
+}), express.static(path.resolve(process.cwd(), 'uploads')));
 
 
 // @ts-ignore

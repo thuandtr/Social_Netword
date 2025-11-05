@@ -45,6 +45,10 @@ const UpdateForm = ({ user, details }: Props) => {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [coverFile, setCoverFile] = useState<File | null>(null);
 
+    // Debug: Log avatar URL
+    console.log('UpdateForm - User details:', details);
+    console.log('UpdateForm - Avatar URL:', details?.avatar_url);
+
     const emptyExperience: Experience = {
         companyName: '',
         jobTitle: '',
@@ -246,12 +250,19 @@ const UpdateForm = ({ user, details }: Props) => {
                                             src={avatarPreview} 
                                             alt="Avatar preview" 
                                             className="size-12 rounded-full object-cover"
+                                            crossOrigin="anonymous"
                                         />
                                     ) : details?.avatar_url ? (
                                         <img 
                                             src={details.avatar_url} 
                                             alt="Current avatar" 
                                             className="size-12 rounded-full object-cover"
+                                            crossOrigin="anonymous"
+                                            onError={(e) => {
+                                                console.error('Failed to load avatar:', details.avatar_url);
+                                                // Fallback to placeholder on error
+                                                e.currentTarget.style.display = 'none';
+                                            }}
                                         />
                                     ) : (
                                         <UserCircleIcon aria-hidden="true" className="size-12 text-gray-500" />
@@ -286,6 +297,9 @@ const UpdateForm = ({ user, details }: Props) => {
                                         onChange={handleAvatarChange}
                                     />
                                 </div>
+                                {details?.avatar_url && (
+                                    <p className="mt-1 text-xs text-gray-500">Current URL: {details.avatar_url}</p>
+                                )}
                                 <p className="mt-2 text-xs/5 text-gray-400">PNG, JPG, GIF up to 10MB</p>
                             </div>
 
