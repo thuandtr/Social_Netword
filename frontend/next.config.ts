@@ -5,7 +5,24 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   env: {
     LOCAL_BACKEND_URL: process.env.LOCAL_BACKEND_URL,
-  }
+  },
+  experimental: {
+    // Increase body size limit for Server Actions to handle file uploads
+    serverActions: {
+      bodySizeLimit: '10mb', // Match backend's 10MB limit
+    },
+  },
+  images: {
+    // Allow images from backend server
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '5000',
+        pathname: '/uploads/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

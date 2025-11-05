@@ -82,3 +82,24 @@ export const validateAuth = async () => {
         throw error;
     }
 }
+
+export const getAuthHeaders = async () => {
+  const cookieStore = await cookies()
+  const accessToken = cookieStore.get('access_token')?.value || ''
+  const refreshToken = cookieStore.get('refresh_token')?.value || ''
+  return {
+    Authorization: `access_token=${accessToken}, refresh_token=${refreshToken}`,
+  }
+}
+
+// Lightweight check for presence of refresh token
+export const isAuthenticated = async () => {
+  const cookieStore = await cookies()
+  return Boolean(cookieStore.get('refresh_token')?.value)
+}
+
+// Server-side guard usable in server components/actions
+export const requireAuth = async (redirectTo: string = '/login') => {
+  const authed = await isAuthenticated()
+  if (!authed) redirect(redirectTo)
+}

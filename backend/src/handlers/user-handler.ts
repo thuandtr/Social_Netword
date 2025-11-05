@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { pool } from "../mysql/connection";
 import { GET_USER_BY_EMAIL, GET_USER_BY_ID } from "../mysql/queries";
-import { INSERT_USER_STATEMENT } from "../mysql/mutations";
+import { INSERT_USER_STATEMENT, UPSERT_USER_DETAILS_STATEMENT, UPDATE_USER_BASIC_BY_ID } from "../mysql/mutations";
 import bcrypt from "bcrypt";
 import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
 import { encryptData } from "../encryption";
@@ -104,7 +104,23 @@ const getUser = async (req: Request, res: Response) => {
         }
         // console.log("User Retrieved:", users);
 
-        return res.status(200).json({ message: "User Retrieved", user: users[0] });
+        // Also fetch user_details for this user (same behavior as getUserDetails)
+        const [detailRows] = await conn.query("SELECT * FROM user_details WHERE user_id = ?", [id]);
+        let details: any = null;
+        const detailsArr = detailRows as any[];
+        if (detailsArr && detailsArr.length > 0) {
+            details = { ...detailsArr[0] };
+            const safeParse = (val: any) => {
+                if (val === null || val === undefined) return null;
+                if (typeof val !== 'string') return val;
+                try { return JSON.parse(val); } catch { return null; }
+            };
+            details.experiences = safeParse(details.experiences);
+            details.educations = safeParse(details.educations);
+            details.certificates = safeParse(details.certificates);
+        }
+
+        return res.status(200).json({ message: "User Retrieved", user: users[0], details }); //also return user_details data base on the user id (same as getUserDetails)
     } catch (error) {
         console.log("Error occured", error);
         return res.status(500).json({ message: "Unexprected Error occurred, Try agian later" });
@@ -220,4 +236,124 @@ const loginUser = async (req: Request, res: Response) => {
     }
 }
 
-export { getUser, createUser, loginUser, setCookies, getUserById };
+const getUserDetails = async (req: Request, res: Response) => {
+    // Fetch user profile details for the authenticated user (or optional route param)
+    let conn;
+    try {
+        const idFromJwt = res.locals?.jwtData?.id;
+        const idFromParams = (req.params as any)?.userId;
+        const userId = idFromParams ?? idFromJwt; // usersRouter.get("/details/:userId", usersHandler.getUserDetails);
+
+        if (!userId || isNaN(Number(userId))) {
+            return res.status(400).json({ message: "User ID is required" });
+        }
+
+        conn = await pool.getConnection();
+        const [rows] = await conn.query("SELECT * FROM user_details WHERE user_id = ?", [userId]);
+        const detailsRows = rows as any[];
+
+        if (!detailsRows || detailsRows.length === 0) {
+            return res.status(404).json({ message: "User details not found" });
+        }
+
+        const details = { ...detailsRows[0] } as any;
+
+        // Safely parse JSON columns if they exist
+        const safeParse = (val: any) => {
+            if (val === null || val === undefined) return null;
+            if (typeof val !== 'string') return val;
+            try { return JSON.parse(val); } catch { return null; }
+        };
+
+        details.experiences = safeParse(details.experiences);
+        details.educations = safeParse(details.educations);
+        details.certificates = safeParse(details.certificates);
+
+        return res.status(200).json({ message: "User details retrieved", details });
+    } catch (error) {
+        console.log("Error retrieving user details:", error);
+        return res.status(500).json({ message: "Unexpected error retrieving user details" });
+    } finally {
+        if (conn) conn.release();
+    }
+}
+
+export { getUser, createUser, loginUser, setCookies, getUserById, getUserDetails };
+ 
+// Update or create user details (profile info)
+export const updateUserDetails = async (req: Request, res: Response) => {
+    const result = req.body;
+    console.log("Update User Details Request Body:", result);
+
+    let conn;
+    try {
+        const userId = res.locals.jwtData?.id;
+        if (!userId || isNaN(Number(userId))) {
+            return res.status(400).json({ message: "Invalid user context" });
+        }
+
+        const {
+            username,
+            email,
+            about,
+            country,
+            address,
+            avatar_url,
+            cover_url,
+            experiences,
+            educations,
+            certificates
+        } = req.body || {};
+
+        const street = address?.street || null;
+        const city = address?.city || null;
+        const region = address?.region || null;
+        const postalCode = address?.postalCode || null;
+
+        conn = await pool.getConnection();
+        await conn.beginTransaction();
+
+        // Optionally update basic account info if provided
+        if (username || email) {
+            try {
+                await conn.query(UPDATE_USER_BASIC_BY_ID, [
+                    username ?? null,
+                    email ?? null,
+                    userId
+                ]);
+            } catch (err: any) {
+                // Handle unique constraint violations gracefully
+                if (err && err.code === 'ER_DUP_ENTRY') {
+                    await conn.rollback();
+                    return res.status(409).json({ message: 'Username or email already in use' });
+                }
+                throw err;
+            }
+        }
+
+        await conn.query(UPSERT_USER_DETAILS_STATEMENT, [
+            userId,
+            about ?? null,
+            country ?? null,
+            street,
+            city,
+            region,
+            postalCode,
+            avatar_url ?? null,
+            cover_url ?? null,
+            experiences ? JSON.stringify(experiences) : null,
+            educations ? JSON.stringify(educations) : null,
+            certificates ? JSON.stringify(certificates) : null,
+        ]);
+
+        await conn.commit();
+
+        return res.status(200).json({ message: "User details saved" });
+    } catch (error) {
+        console.log("Error updating user details:", error);
+        if (conn) try { await conn.rollback(); } catch {}
+        return res.status(500).json({ message: "Unexpected error updating details" });
+    } finally {
+        if (conn) conn.release();
+    }
+}

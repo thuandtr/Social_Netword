@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { LoginFormSchema, SignupFormSchema } from "../lib/definitions";
 import axios from "axios";
+import { getAuthHeaders } from "../lib/validateAuth";
 import setCookieParse from 'set-cookie-parser';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation';
@@ -178,4 +179,132 @@ export const logoutAction = async () => {
     
     // Redirect to login page
     redirect('/login');
+}
+
+// Update user details (server action)
+export const updateDetailsAction = async (prevState: unknown, formData: FormData) => {
+    // Build payload from form fields (form inputs with name attr only)
+    console.log("formData entries:", Array.from(formData.entries()));
+
+    // Parse dynamic lists serialized as JSON by hidden inputs
+    const parseJSON = <T,>(raw: FormDataEntryValue | null, fallback: T): T => {
+        if (typeof raw !== 'string') return fallback;
+        try {
+            const obj = JSON.parse(raw);
+            return obj as T;
+        } catch (e) {
+            console.warn('Failed to parse JSON field:', e);
+            return fallback;
+        }
+    };
+
+    const experiences = parseJSON<any[]>(formData.get('experiences'), []);
+    const educations = parseJSON<any[]>(formData.get('educations'), []);
+    const certificates = parseJSON<any[]>(formData.get('certificates'), []);
+
+    // Log to confirm we actually received certificate info
+    console.log('Received certificates:', certificates);
+
+    // Prepare optional file uploads
+    const uploadIfPresent = async (fileEntry: FormDataEntryValue | null): Promise<string | null> => {
+        try {
+            if (!fileEntry || !(fileEntry instanceof File) || fileEntry.size === 0) return null;
+
+            // Resolve API base ensuring it includes the /api/v1/auth prefix
+            const rawBase = process.env.LOCAL_BACKEND_URL
+                || process.env.PROD_BACKEND_URL
+                || process.env.NEXT_PUBLIC_API_URL
+                || (axios.defaults.baseURL as string | undefined)
+                || "http://localhost:5000/api/v1/auth";
+
+            const ensureApiBase = (b: string) => {
+                const trimmed = b.replace(/\/+$/, "");
+                if (/\/api\/v1\/auth$/.test(trimmed)) return trimmed;
+                return trimmed + "/api/v1/auth";
+            };
+
+            const API_BASE = ensureApiBase(rawBase);
+            const URL = API_BASE + '/user/upload';
+            const headers = await getAuthHeaders();
+
+            const fd = new FormData();
+            fd.append('file', fileEntry, fileEntry.name);
+
+            const res = await fetch(URL, {
+                method: 'POST',
+                body: fd,
+                // Let fetch set multipart/form-data boundary automatically
+                headers: {
+                    Authorization: headers.Authorization,
+                },
+                // Important for cookie flow when needed
+                credentials: 'include'
+            });
+            if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+            const json: any = await res.json();
+            return json?.url ?? null;
+        } catch (e) {
+            console.warn('File upload skipped due to error:', e);
+            return null;
+        }
+    };
+
+    const avatarFile = formData.get('avatar');
+    const coverFile = formData.get('cover');
+
+    const [avatarUrl, coverUrl] = await Promise.all([
+        uploadIfPresent(avatarFile),
+        uploadIfPresent(coverFile)
+    ]);
+
+    const payload = {
+        // Also allow updating basic account fields when provided
+        username: (formData.get('username') as string) || null,
+        email: (formData.get('email') as string) || null,
+        about: (formData.get('about') as string) || null,
+        country: (formData.get('country') as string) || null,
+        address: {
+            street: (formData.get('street-address') as string) || null,
+            city: (formData.get('city') as string) || null,
+            region: (formData.get('region') as string) || null,
+            postalCode: (formData.get('postal-code') as string) || null,
+        },
+        // Not persisted yet on backend, but kept here for future use
+        experiences,
+        educations,
+        certificates,
+        // Uploaded file URLs if provided
+        avatar_url: avatarUrl,
+        cover_url: coverUrl,
+    };
+
+    try {
+        // Resolve API base ensuring it includes the /api/v1/auth prefix
+        const rawBase = process.env.LOCAL_BACKEND_URL
+            || process.env.PROD_BACKEND_URL
+            || process.env.NEXT_PUBLIC_API_URL
+            || (axios.defaults.baseURL as string | undefined)
+            || "http://localhost:5000/api/v1/auth";
+
+        const ensureApiBase = (b: string) => {
+            const trimmed = b.replace(/\/+$/, "");
+            if (/\/api\/v1\/auth$/.test(trimmed)) return trimmed;
+            return trimmed + "/api/v1/auth";
+        };
+
+        const API_BASE = ensureApiBase(rawBase);
+        const URL = API_BASE + '/user/details';
+
+        const headers = await getAuthHeaders();
+        const res = await axios.put(URL, payload, { headers, withCredentials: true });
+        const data = await res.data;
+
+        return { ok: true, message: data?.message || 'Profile updated' };
+    } catch (error) {
+        console.error('Update details error:', error);
+        if (error instanceof Error) {
+            return { ok: false, message: error.message };
+        }
+        return { ok: false, message: 'An unexpected error occurred' };
+    }
 }

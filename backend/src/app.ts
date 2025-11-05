@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import appRouter from './routers';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' ? 
         process.env.FRONTEND_URL : 
-        'http://localhost:3000', // Next.js default port
+        ['http://localhost:3000', 'http://localhost:3001'], // Allow both Next.js ports
     credentials: true, // Allow cookies to be sent cross-origin
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
@@ -31,7 +32,9 @@ app.use(cors({
 /*
  * Helmet helps secure Express apps by setting various HTTP headers: details <backend\md\explain2.md>
 */
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images to be loaded cross-origin
+}));
 
 // Logging Middleware
 /*
@@ -49,6 +52,10 @@ app.use((req, res, next) => {
 })
 
 app.use("/api/v1/auth", appRouter);
+
+// Serve uploaded files statically
+// This exposes files stored under the "uploads" directory at /uploads/*
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
 
 // @ts-ignore

@@ -1,47 +1,43 @@
 import { MiddlewareConfig, NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { validateAuth } from "./app/lib/validateAuth";
 
 
 export const middleware = async (req: NextRequest) => {
-    const cookieStore = await cookies();
     const pathname = req.nextUrl.pathname;
 
-    const accessToken = cookieStore.get('access_token');
-    const refreshToken = cookieStore.get('refresh_token');
+    // Read cookies from the incoming request (middleware cannot use next/headers.cookies())
+    const accessToken = req.cookies.get('access_token')?.value;
+    const refreshToken = req.cookies.get('refresh_token')?.value;
 
-    // Check if user is on auth routes (login/signup)
+    // Route classification
     const isAuthRoute = pathname === '/login' || pathname === '/signup';
-    
-    // If user has tokens and tries to access login/signup, redirect to profile
-    if (isAuthRoute && (accessToken || refreshToken)) {
-        console.log("User is authenticated, redirecting from auth route to profile");
+    const isProtectedRoute = pathname.startsWith('/profile') || pathname.startsWith('/update');
+
+    // If already authenticated, prevent accessing auth pages
+    if (isAuthRoute && !!refreshToken) {
         const url = req.nextUrl.clone();
         url.pathname = '/profile';
         return NextResponse.redirect(url);
     }
 
-    // If user is on protected route (profile), check authentication
-    if (!isAuthRoute) {
-        // Only redirect if both tokens are missing
-        if (!accessToken && !refreshToken) {
-            const url = req.nextUrl.clone();
-            console.log("No tokens found - redirecting to login:", url.pathname); 
-            url.pathname = '/login';
-            return NextResponse.redirect(url);
-        }
-        
-        // If we have tokens, allow access to the protected route
-        // The profile page itself will handle token validation and data fetching
-        console.log("User has tokens, allowing access to:", pathname);
-        return NextResponse.next();
+    // Guard protected routes: require refresh_token (access can be refreshed server-side)
+    if (isProtectedRoute && !refreshToken) {
+        const url = req.nextUrl.clone();
+        url.pathname = '/login';
+        return NextResponse.redirect(url);
     }
 
-    // Allow access to auth routes when not authenticated
+    // Otherwise continue
     return NextResponse.next();
 }
 
 export const config: MiddlewareConfig = {
-    // Protect profile route and auth routes (login/signup)
-    matcher: ["/profile", "/login", "/signup"],
+    // Evaluate only relevant routes for auth logic
+    matcher: [
+        "/login",
+        "/signup",
+        "/profile",
+        "/profile/:path*",
+        "/update",
+        "/update/:path*",
+    ],
 };
