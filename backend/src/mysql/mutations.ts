@@ -15,9 +15,10 @@ INSERT INTO user_details (
 	cover_url,
 	experiences,
 	educations,
-	certificates
+	certificates,
+	projects
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
 	about = VALUES(about),
 	country = VALUES(country),
@@ -30,6 +31,7 @@ ON DUPLICATE KEY UPDATE
 	experiences = VALUES(experiences),
 	educations = VALUES(educations),
 	certificates = VALUES(certificates),
+	projects = VALUES(projects),
 	updated_at = CURRENT_TIMESTAMP;
 `
 

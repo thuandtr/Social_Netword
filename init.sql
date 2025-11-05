@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS user_details (
     experiences JSON NULL,
     educations JSON NULL,
     certificates JSON NULL,
+    projects JSON NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_user_details_user

@@ -9,7 +9,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation';
 
 export const loginAction = async (prevState: unknown, formData: FormData) => {
-    console.log("prevState:", prevState);
+    // console.log("prevState:", prevState);
 
     const validateFields = LoginFormSchema.safeParse({
         email: formData.get("email"),
@@ -31,9 +31,9 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
         });
         const data = await res.data;
 
-        console.log("Login response data:", data);
-        console.log("Login response headers:", res.headers['set-cookie']);
-        console.log("All response headers:", Object.keys(res.headers));
+        // console.log("Login response data:", data);
+        // console.log("Login response headers:", res.headers['set-cookie']);
+        // console.log("All response headers:", Object.keys(res.headers));
         
         if (!res.headers["set-cookie"]) {
             console.error("No set-cookie header found in response");
@@ -43,16 +43,16 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
         const cookieStore = await cookies();
         const cookieData = setCookieParse(res.headers["set-cookie"]!);
         
-        console.log("Parsed cookie data:", cookieData);
+        // console.log("Parsed cookie data:", cookieData);
         
         cookieData.forEach((cookie) => {
             // Skip empty cookies (used for clearing)
             if (!cookie.value) {
-                console.log("Skipping empty cookie:", cookie.name);
+                // console.log("Skipping empty cookie:", cookie.name);
                 return;
             }
             
-            console.log("Setting cookie:", cookie.name, "with value length:", cookie.value?.length);
+            // console.log("Setting cookie:", cookie.name, "with value length:", cookie.value?.length);
             
             try {
                 // Simplified cookie setting with minimal options
@@ -64,13 +64,13 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
                     secure: process.env.NODE_ENV === 'production',
                     maxAge: cookie.name === 'access_token' ? 3600 : 30 * 24 * 3600 // 1 hour for access, 30 days for refresh
                 });
-                console.log("Successfully set cookie:", cookie.name);
+                // console.log("Successfully set cookie:", cookie.name);
             } catch (error) {
                 console.error("Error setting cookie:", cookie.name, error);
             }
         });
 
-        console.log("About to redirect to /profile");
+        // console.log("About to redirect to /profile");
         
     } catch (error) {
         console.error("Login error:", error);
@@ -99,7 +99,7 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
 }
 
 export const signupAction = async (prevState: unknown, formData: FormData) => {
-    console.log("prevState:", prevState);
+    // console.log("prevState:", prevState);
     
     const validateFields = SignupFormSchema.safeParse({
         firstName: formData.get("first-name"),
@@ -125,8 +125,8 @@ export const signupAction = async (prevState: unknown, formData: FormData) => {
         });
         const data = await res.data;
 
-        console.log("Signup response data:", data);
-        console.log("Signup response headers:", res.headers['set-cookie']);
+        // console.log("Signup response data:", data);
+        // console.log("Signup response headers:", res.headers['set-cookie']);
 
         const cookieStore = await cookies();
         const cookieData = setCookieParse(res.headers["set-cookie"]!);
@@ -175,7 +175,7 @@ export const logoutAction = async () => {
     cookieStore.delete('access_token');
     cookieStore.delete('refresh_token');
     
-    console.log("User logged out, cookies cleared");
+    // console.log("User logged out, cookies cleared");
     
     // Redirect to login page
     redirect('/login');
@@ -184,7 +184,7 @@ export const logoutAction = async () => {
 // Update user details (server action)
 export const updateDetailsAction = async (prevState: unknown, formData: FormData) => {
     // Build payload from form fields (form inputs with name attr only)
-    console.log("formData entries:", Array.from(formData.entries()));
+    // console.log("formData entries:", Array.from(formData.entries()));
 
     // Parse dynamic lists serialized as JSON by hidden inputs
     const parseJSON = <T,>(raw: FormDataEntryValue | null, fallback: T): T => {
@@ -201,14 +201,17 @@ export const updateDetailsAction = async (prevState: unknown, formData: FormData
     const experiences = parseJSON<any[]>(formData.get('experiences'), []);
     const educations = parseJSON<any[]>(formData.get('educations'), []);
     const certificates = parseJSON<any[]>(formData.get('certificates'), []);
+    const projects = parseJSON<any[]>(formData.get('projects'), []);
 
     // Log to confirm we actually received certificate info
-    console.log('Received certificates:', certificates);
+    // console.log('Received certificates:', certificates);
+    // console.log('Received projects:', projects);
 
     // Prepare optional file uploads
     const uploadIfPresent = async (fileEntry: FormDataEntryValue | null): Promise<string | null> => {
         try {
-            if (!fileEntry || !(fileEntry instanceof File) || fileEntry.size === 0) return null;
+            // Check if it's a file-like object with size property (works in both browser and Node.js)
+            if (!fileEntry || typeof fileEntry === 'string' || !fileEntry.size || fileEntry.size === 0) return null;
 
             // Resolve API base ensuring it includes the /api/v1/auth prefix
             const rawBase = process.env.LOCAL_BACKEND_URL
@@ -273,6 +276,7 @@ export const updateDetailsAction = async (prevState: unknown, formData: FormData
         experiences,
         educations,
         certificates,
+        projects,
         // Uploaded file URLs if provided
         avatar_url: avatarUrl,
         cover_url: coverUrl,

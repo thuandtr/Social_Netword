@@ -51,6 +51,22 @@ export type CertificateDetails = {
   credential_url?: string | null
 }
 
+export type ProjectDetails = {
+  name: string
+  description?: string | null
+  sourceLink?: string | null
+  source_link?: string | null
+  demoLink?: string | null
+  demo_link?: string | null
+  technologies?: string | null
+  contributors?: string | null
+  responsibilities?: string | null
+  startDate?: string | null
+  start_date?: string | null
+  endDate?: string | null
+  end_date?: string | null
+}
+
 export type UserDetails = {
   user_id: number
   about: string | null
@@ -66,6 +82,7 @@ export type UserDetails = {
   experiences?: ExperienceDetails[]
   educations?: EducationDetails[]
   certificates?: CertificateDetails[]
+  projects?: ProjectDetails[]
 }
 
 export type CurrentUserResponse = {

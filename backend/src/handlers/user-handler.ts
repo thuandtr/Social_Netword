@@ -118,6 +118,7 @@ const getUser = async (req: Request, res: Response) => {
             details.experiences = safeParse(details.experiences);
             details.educations = safeParse(details.educations);
             details.certificates = safeParse(details.certificates);
+            details.projects = safeParse(details.projects);
         }
 
         return res.status(200).json({ message: "User Retrieved", user: users[0], details }); //also return user_details data base on the user id (same as getUserDetails)
@@ -268,6 +269,7 @@ const getUserDetails = async (req: Request, res: Response) => {
         details.experiences = safeParse(details.experiences);
         details.educations = safeParse(details.educations);
         details.certificates = safeParse(details.certificates);
+        details.projects = safeParse(details.projects);
 
         return res.status(200).json({ message: "User details retrieved", details });
     } catch (error) {
@@ -302,7 +304,8 @@ export const updateUserDetails = async (req: Request, res: Response) => {
             cover_url,
             experiences,
             educations,
-            certificates
+            certificates,
+            projects,
         } = req.body || {};
 
         const street = address?.street || null;
@@ -344,6 +347,7 @@ export const updateUserDetails = async (req: Request, res: Response) => {
             experiences ? JSON.stringify(experiences) : null,
             educations ? JSON.stringify(educations) : null,
             certificates ? JSON.stringify(certificates) : null,
+            projects ? JSON.stringify(projects) : null,
         ]);
 
         await conn.commit();

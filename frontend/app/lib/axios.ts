@@ -6,17 +6,23 @@ function getBaseURL(): string {
   
   if (isServer) {
     // Server-side: use internal Docker service name or fallback
+    // Never use 'localhost' on server-side in Docker to avoid IPv6 issues
     return process.env.PROD_BACKEND_URL || 
            process.env.LOCAL_BACKEND_URL || 
            "http://backend:5000/api/v1/auth";
   } else {
     // Client-side: use public URL
-    return process.env.NEXT_PUBLIC_API_URL || 
-           "http://localhost:5000/api/v1/auth";
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1/auth";
   }
 }
 
 axios.defaults.withCredentials = true;
+
+// Force IPv4 for axios to avoid IPv6 connection issues
+axios.defaults.family = 4;
+
+// Force IPv4 for axios to avoid IPv6 connection issues
+axios.defaults.family = 4;
 
 // Add a request interceptor to set baseURL dynamically
 axios.interceptors.request.use(function (config) {
@@ -25,10 +31,9 @@ axios.interceptors.request.use(function (config) {
       config.baseURL = getBaseURL();
     }
 
-    // Do something before request is sent
-    // console.log("Request sent with config:", 
-    //     config.baseURL! + config.url, 
-    //     "Request data:", JSON.stringify(config.data));
+    // Log the URL being used for debugging
+    const isServer = typeof window === "undefined";
+    console.log(`[${isServer ? 'SERVER' : 'CLIENT'}] Request to:`, config.baseURL + (config.url || ''));
 
     return config;
   }, function (error) {

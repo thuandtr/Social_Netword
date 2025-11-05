@@ -3,7 +3,7 @@
 import React, { useState, useActionState } from 'react'
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid'
 import { ChevronDownIcon } from '@heroicons/react/16/solid'
-import type { User, UserDetails, ExperienceDetails, EducationDetails, CertificateDetails } from '../lib/user'
+import type { User, UserDetails, ExperienceDetails, EducationDetails, CertificateDetails, ProjectDetails } from '../lib/user'
 import { updateDetailsAction } from '../actions/form-actions'
 
 type Experience = {
@@ -32,6 +32,18 @@ type Certificate = {
     issueDate?: string
     credentialId?: string
     credentialUrl?: string
+}
+
+type Project = {
+    name: string
+    description?: string
+    sourceLink?: string
+    demoLink?: string
+    technologies?: string
+    contributors?: string
+    responsibilities?: string
+    startDate?: string
+    endDate?: string
 }
 
 type Props = {
@@ -68,6 +80,18 @@ const UpdateForm = ({ user, details }: Props) => {
         name: '', issuer: '', issueDate: '', credentialId: '', credentialUrl: ''
     }
 
+    const emptyProject: Project = {
+        name: '',
+        description: '',
+        sourceLink: '',
+        demoLink: '',
+        technologies: '',
+        contributors: '',
+        responsibilities: '',
+        startDate: '',
+        endDate: '',
+    }
+
     const mapExperience = (e: ExperienceDetails): Experience => ({
         companyName: (e.companyName ?? e.company_name ?? '') || '',
         jobTitle: (e.jobTitle ?? e.job_title ?? '') || '',
@@ -96,6 +120,18 @@ const UpdateForm = ({ user, details }: Props) => {
         credentialUrl: (c.credentialUrl ?? c.credential_url ?? '') || '',
     })
 
+    const mapProject = (p: ProjectDetails): Project => ({
+        name: p.name ?? '',
+        description: p.description ?? '',
+        sourceLink: (p.sourceLink ?? p.source_link ?? '') || '',
+        demoLink: (p.demoLink ?? p.demo_link ?? '') || '',
+        technologies: p.technologies ?? '',
+        contributors: p.contributors ?? '',
+        responsibilities: p.responsibilities ?? '',
+        startDate: (p.startDate ?? p.start_date ?? '') || '',
+        endDate: (p.endDate ?? p.end_date ?? '') || '',
+    })
+
     const [experiences, setExperiences] = useState<Experience[]>(() =>
         details?.experiences && details.experiences.length
             ? details.experiences.map(mapExperience)
@@ -112,6 +148,12 @@ const UpdateForm = ({ user, details }: Props) => {
         details?.certificates && details.certificates.length
             ? details.certificates.map(mapCertificate)
             : [emptyCertificate]
+    )
+
+    const [projects, setProjects] = useState<Project[]>(() =>
+        details?.projects && details.projects.length
+            ? details.projects.map(mapProject)
+            : [emptyProject]
     )
 
     const handleExperienceChange = (index: number, field: keyof Experience, value: string) => {
@@ -151,6 +193,18 @@ const UpdateForm = ({ user, details }: Props) => {
 
     const removeCertificate = (index: number) => {
         setCertificates(prev => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
+    }
+
+    const handleProjectChange = (index: number, field: keyof Project, value: string) => {
+        setProjects(prev => prev.map((proj, i) => (i === index ? { ...proj, [field]: value } : proj)))
+    }
+
+    const addProject = () => {
+        setProjects(prev => [...prev, emptyProject])
+    }
+
+    const removeProject = (index: number) => {
+        setProjects(prev => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
     }
 
     // Handle avatar file selection
@@ -297,9 +351,6 @@ const UpdateForm = ({ user, details }: Props) => {
                                         onChange={handleAvatarChange}
                                     />
                                 </div>
-                                {details?.avatar_url && (
-                                    <p className="mt-1 text-xs text-gray-500">Current URL: {details.avatar_url}</p>
-                                )}
                                 <p className="mt-2 text-xs/5 text-gray-400">PNG, JPG, GIF up to 10MB</p>
                             </div>
 
@@ -828,12 +879,174 @@ const UpdateForm = ({ user, details }: Props) => {
                             </div>
                         </div>
                     </div>
+
+                    <div className="border-b border-white/10 pb-12">
+                        <h2 className="text-base/7 font-semibold text-white">Personal Projects</h2>
+                        <p className="mt-1 text-sm/6 text-gray-400">
+                            Showcase your personal or collaborative projects with details about your contributions.
+                        </p>
+
+                        <div className="mt-10 space-y-10">
+                            {projects.map((proj, idx) => (
+                                <div key={idx} className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                                    <div className="sm:col-span-6">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-sm font-semibold text-white">Project #{idx + 1}</h3>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={addProject}
+                                                    className="rounded-md bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-white/20"
+                                                >
+                                                    Add
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeProject(idx)}
+                                                    className="rounded-md bg-red-500/20 px-2.5 py-1.5 text-xs font-medium text-red-200 hover:bg-red-500/30"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="sm:col-span-4">
+                                        <label className="block text-sm/6 font-medium text-white">Project name</label>
+                                        <div className="mt-2">
+                                            <input
+                                                type="text"
+                                                value={proj.name}
+                                                onChange={(e) => handleProjectChange(idx, 'name', e.target.value)}
+                                                placeholder="e.g. E-commerce Platform"
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="sm:col-span-3">
+                                        <label className="block text-sm/6 font-medium text-white">Start date</label>
+                                        <div className="mt-2">
+                                            <input
+                                                type="date"
+                                                value={proj.startDate ?? ''}
+                                                onChange={(e) => handleProjectChange(idx, 'startDate', e.target.value)}
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="sm:col-span-3">
+                                        <label className="block text-sm/6 font-medium text-white">End date</label>
+                                        <div className="mt-2">
+                                            <input
+                                                type="date"
+                                                value={proj.endDate ?? ''}
+                                                onChange={(e) => handleProjectChange(idx, 'endDate', e.target.value)}
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                            />
+                                        </div>
+                                        <p className="mt-2 text-xs text-gray-400">Leave blank if project is ongoing.</p>
+                                    </div>
+
+                                    <div className="col-span-full">
+                                        <label className="block text-sm/6 font-medium text-white">Project description</label>
+                                        <div className="mt-2">
+                                            <textarea
+                                                rows={4}
+                                                value={proj.description ?? ''}
+                                                onChange={(e) => handleProjectChange(idx, 'description', e.target.value)}
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                                placeholder="Describe what the project does, its purpose, and key features..."
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="sm:col-span-3">
+                                        <label className="block text-sm/6 font-medium text-white">Source code link</label>
+                                        <div className="mt-2">
+                                            <input
+                                                type="url"
+                                                value={proj.sourceLink ?? ''}
+                                                onChange={(e) => handleProjectChange(idx, 'sourceLink', e.target.value)}
+                                                placeholder="https://github.com/username/repo"
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="sm:col-span-3">
+                                        <label className="block text-sm/6 font-medium text-white">Live demo link</label>
+                                        <div className="mt-2">
+                                            <input
+                                                type="url"
+                                                value={proj.demoLink ?? ''}
+                                                onChange={(e) => handleProjectChange(idx, 'demoLink', e.target.value)}
+                                                placeholder="https://demo-site.com"
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="col-span-full">
+                                        <label className="block text-sm/6 font-medium text-white">Technologies used</label>
+                                        <div className="mt-2">
+                                            <input
+                                                type="text"
+                                                value={proj.technologies ?? ''}
+                                                onChange={(e) => handleProjectChange(idx, 'technologies', e.target.value)}
+                                                placeholder="e.g. React, Node.js, PostgreSQL, Docker, AWS"
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                            />
+                                        </div>
+                                        <p className="mt-2 text-xs text-gray-400">List technologies, frameworks, and tools used (comma-separated).</p>
+                                    </div>
+
+                                    <div className="col-span-full">
+                                        <label className="block text-sm/6 font-medium text-white">Contributors</label>
+                                        <div className="mt-2">
+                                            <input
+                                                type="text"
+                                                value={proj.contributors ?? ''}
+                                                onChange={(e) => handleProjectChange(idx, 'contributors', e.target.value)}
+                                                placeholder="e.g. John Doe, Jane Smith (or leave blank if solo project)"
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="col-span-full">
+                                        <label className="block text-sm/6 font-medium text-white">Your responsibilities</label>
+                                        <div className="mt-2">
+                                            <textarea
+                                                rows={3}
+                                                value={proj.responsibilities ?? ''}
+                                                onChange={(e) => handleProjectChange(idx, 'responsibilities', e.target.value)}
+                                                className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                                                placeholder="Describe your role and specific contributions to the project..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            <div>
+                                <button
+                                    type="button"
+                                    onClick={addProject}
+                                    className="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20"
+                                >
+                                    + Add another project
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Hidden JSON fields to include dynamic lists in FormData */}
                 <input type="hidden" name="experiences" value={JSON.stringify(experiences)} />
                 <input type="hidden" name="educations" value={JSON.stringify(educations)} />
                 <input type="hidden" name="certificates" value={JSON.stringify(certificates)} />
+                <input type="hidden" name="projects" value={JSON.stringify(projects)} />
 
                 <div className="mt-6 flex items-center justify-end gap-x-6">
                     <button type="button" className="text-sm/6 font-semibold text-white">

@@ -19,6 +19,7 @@ export const CREATE_TABLE_USER_DETAILS = `CREATE TABLE IF NOT EXISTS user_detail
     experiences JSON NULL,
     educations JSON NULL,
     certificates JSON NULL,
+    projects JSON NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_user_details_user
