@@ -4,6 +4,7 @@ import { validateAuthTokens } from "../middlewares/jwt-token-validator";
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { downloadCV } from "../handlers/user-handler";
 
 const usersRouter = Router();
 // /api/v1/auth/user
@@ -17,9 +18,13 @@ const usersRouter = Router();
 usersRouter.get("/me", validateAuthTokens, usersHandler.getUser);
 // Note: Next.js handles this differently with middleware.ts at route level
 
+usersRouter.get("/username/:username", usersHandler.getUserByUsername);
 usersRouter.get("/:id", usersHandler.getUserById);
 usersRouter.post("/signup", usersHandler.createUser);
 usersRouter.post("/login", usersHandler.loginUser);
+
+// Download CV (requires authentication)
+usersRouter.get("/download-cv/:username", validateAuthTokens, downloadCV);
 
 // Update user details (creates row if not exists)
 usersRouter.put("/details", validateAuthTokens, usersHandler.updateUserDetails);
@@ -56,12 +61,28 @@ const upload = multer({
 // Returns the public URL under /uploads/
 usersRouter.post('/upload', validateAuthTokens, upload.single('file'), (req, res) => {
 	try {
-	const file = (req as any).file as any;
+		const file = (req as any).file as any;
 		if (!file) {
 			return res.status(400).json({ message: 'No file uploaded' });
 		}
-		const publicUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
-		return res.status(201).json({ message: 'File uploaded', url: publicUrl });
+		
+		// Determine the public-facing backend URL
+		// In production/Docker: use the backend URL that the browser can access
+		// In development: use localhost
+		const publicBackendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1/auth', '') 
+			|| process.env.FRONTEND_URL?.replace('3000', '5000')
+			|| `${req.protocol}://${req.get('host')}`.replace('backend', 'localhost');
+		
+		const publicUrl = `${publicBackendUrl}/uploads/${file.filename}`;
+		
+		console.log(`File uploaded: ${file.filename}`);
+		console.log(`Public URL: ${publicUrl}`);
+		
+		return res.status(201).json({ 
+			message: 'File uploaded', 
+			url: publicUrl,
+			filename: file.filename
+		});
 	} catch (err: any) {
 		return res.status(500).json({ message: err?.message || 'Upload failed' });
 	}

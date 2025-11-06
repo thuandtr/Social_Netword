@@ -9,15 +9,13 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation';
 
 export const loginAction = async (prevState: unknown, formData: FormData) => {
-    // console.log("prevState:", prevState);
-
+    // Validate fields
     const validateFields = LoginFormSchema.safeParse({
         email: formData.get("email"),
         password: formData.get("password"),
     });
 
     if (!validateFields.success) {
-        // return { errorsTypeA: validateFields.error.flatten().fieldErrors };
         return { errors: z.treeifyError(validateFields.error).properties };
     }
 
@@ -30,29 +28,23 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
             password
         });
         const data = await res.data;
-
-        // console.log("Login response data:", data);
-        // console.log("Login response headers:", res.headers['set-cookie']);
-        // console.log("All response headers:", Object.keys(res.headers));
         
         if (!res.headers["set-cookie"]) {
             console.error("No set-cookie header found in response");
-            throw new Error("Authentication cookies not received from server");
+            return {
+                error: "Authentication failed. Please try again.",
+                type: "auth_error"
+            };
         }
 
         const cookieStore = await cookies();
         const cookieData = setCookieParse(res.headers["set-cookie"]!);
         
-        // console.log("Parsed cookie data:", cookieData);
-        
         cookieData.forEach((cookie) => {
             // Skip empty cookies (used for clearing)
             if (!cookie.value) {
-                // console.log("Skipping empty cookie:", cookie.name);
                 return;
             }
-            
-            // console.log("Setting cookie:", cookie.name, "with value length:", cookie.value?.length);
             
             try {
                 // Simplified cookie setting with minimal options
@@ -64,15 +56,12 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
                     secure: process.env.NODE_ENV === 'production',
                     maxAge: cookie.name === 'access_token' ? 3600 : 30 * 24 * 3600 // 1 hour for access, 30 days for refresh
                 });
-                // console.log("Successfully set cookie:", cookie.name);
             } catch (error) {
                 console.error("Error setting cookie:", cookie.name, error);
             }
         });
-
-        // console.log("About to redirect to /profile");
         
-    } catch (error) {
+    } catch (error: any) {
         console.error("Login error:", error);
         
         // Check if this is a Next.js redirect - if so, let it propagate
@@ -80,27 +69,59 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
             throw error;
         }
         
-        // Return a proper error response instead of throwing
-        if (error instanceof Error) {
+        // Handle axios errors with response
+        if (error.response) {
+            const status = error.response.status;
+            const message = error.response.data?.message || error.response.data?.error;
+            
+            if (status === 401 || status === 400) {
+                return { 
+                    error: message || "Invalid email or password. Please try again.",
+                    type: "auth_error"
+                };
+            } else if (status === 404) {
+                return {
+                    error: "Account not found. Please check your email or sign up.",
+                    type: "auth_error"
+                };
+            } else if (status === 429) {
+                return {
+                    error: "Too many login attempts. Please try again later.",
+                    type: "rate_limit_error"
+                };
+            } else if (status >= 500) {
+                return {
+                    error: "Server error. Please try again later.",
+                    type: "server_error"
+                };
+            }
+            
             return { 
-                error: error.message || "Login failed. Please try again.",
+                error: message || "Login failed. Please try again.",
                 type: "auth_error"
             };
         }
         
+        // Handle network errors
+        if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+            return {
+                error: "Cannot connect to server. Please check your internet connection.",
+                type: "network_error"
+            };
+        }
+        
+        // Generic error fallback
         return { 
-            error: "An unexpected error occurred. Please try again.",
+            error: error.message || "An unexpected error occurred. Please try again.",
             type: "unknown_error"
         };
     }
     
-    // Redirect to profile page after successful login
     redirect('/profile');
 }
 
 export const signupAction = async (prevState: unknown, formData: FormData) => {
-    // console.log("prevState:", prevState);
-    
+    // Validate fields
     const validateFields = SignupFormSchema.safeParse({
         firstName: formData.get("first-name"),
         lastName: formData.get("last-name"),
@@ -109,7 +130,6 @@ export const signupAction = async (prevState: unknown, formData: FormData) => {
     });
 
     if (!validateFields.success) {
-        // return { errorsTypeA: validateFields.error.flatten().fieldErrors };
         return { errors: z.treeifyError(validateFields.error).properties };
     }
 
@@ -124,9 +144,6 @@ export const signupAction = async (prevState: unknown, formData: FormData) => {
             password
         });
         const data = await res.data;
-
-        // console.log("Signup response data:", data);
-        // console.log("Signup response headers:", res.headers['set-cookie']);
 
         const cookieStore = await cookies();
         const cookieData = setCookieParse(res.headers["set-cookie"]!);
@@ -143,7 +160,7 @@ export const signupAction = async (prevState: unknown, formData: FormData) => {
             });
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Signup error:", error);
         
         // Check if this is a Next.js redirect - if so, let it propagate
@@ -151,16 +168,50 @@ export const signupAction = async (prevState: unknown, formData: FormData) => {
             throw error;
         }
         
-        // Return a proper error response for other errors
-        if (error instanceof Error) {
+        // Handle axios errors with response
+        if (error.response) {
+            const status = error.response.status;
+            const message = error.response.data?.message || error.response.data?.error;
+            
+            if (status === 409 || status === 400) {
+                return { 
+                    error: message || "This email is already registered. Please try logging in.",
+                    type: "auth_error"
+                };
+            } else if (status === 422) {
+                return {
+                    error: message || "Invalid data provided. Please check your information.",
+                    type: "validation_error"
+                };
+            } else if (status === 429) {
+                return {
+                    error: "Too many signup attempts. Please try again later.",
+                    type: "rate_limit_error"
+                };
+            } else if (status >= 500) {
+                return {
+                    error: "Server error. Please try again later.",
+                    type: "server_error"
+                };
+            }
+            
             return { 
-                error: error.message || "Signup failed. Please try again.",
+                error: message || "Signup failed. Please try again.",
                 type: "auth_error"
             };
         }
         
+        // Handle network errors
+        if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+            return {
+                error: "Cannot connect to server. Please check your internet connection.",
+                type: "network_error"
+            };
+        }
+        
+        // Generic error fallback
         return { 
-            error: "An unexpected error occurred. Please try again.",
+            error: error.message || "An unexpected error occurred. Please try again.",
             type: "unknown_error"
         };
     }

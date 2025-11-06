@@ -60,6 +60,8 @@ export const verifyAndDecode = (token: string) => {
  */
 const saveRefreshToken = async (token: string, encryptedToken: string) => {
     try {
+        console.log("=== SAVING REFRESH TOKEN - START ===");
+        
         // Decode the JWT token without verification to extract the payload data
         // { json: true } returns parsed object instead of string
         const decodedData = jwt.decode(token, { json: true });
@@ -72,7 +74,17 @@ const saveRefreshToken = async (token: string, encryptedToken: string) => {
         }
         */
         // Check if token decoding was successful, throw error if token is malformed
-        if (!decodedData) throw new Error("Invalid token");
+        if (!decodedData) {
+            console.error("❌ Invalid token - decode failed");
+            throw new Error("Invalid token");
+        }
+
+        console.log("Token decoded successfully:", { 
+            id: decodedData.id, 
+            email: decodedData.email,
+            iat: new Date(decodedData.iat! * 1000).toISOString(),
+            exp: new Date(decodedData.exp! * 1000).toISOString()
+        });
 
         // Generate a Redis key using the user ID from the decoded token payload
         // This creates a unique key like "refresh_token:user_123" for storage
@@ -81,20 +93,30 @@ const saveRefreshToken = async (token: string, encryptedToken: string) => {
         // Calculate Time To Live (TTL) in seconds based on token's expiration timestamp
         // Uses the 'exp' claim from JWT payload (! asserts it exists)
         const TTL = generateTTL(decodedData.exp!);
+        
+        console.log("=== SAVING REFRESH TOKEN - DETAILS ===");
+        console.log("Redis Key:", key);
+        console.log("Encrypted Token (first 50 chars):", encryptedToken.substring(0, 50) + "...");
+        console.log("Encrypted Token Length:", encryptedToken.length);
+        console.log("TTL (seconds):", TTL);
+        console.log("Expires at:", new Date((decodedData.exp!) * 1000).toISOString());
+
+        if (TTL <= 0) {
+            console.error("❌ Token already expired, TTL:", TTL);
+            throw new Error("Token already expired");
+        }
+        
         // Store the token in Redis: encrypt it first, then save with auto-expiration
         // setCache(key, value, ttl) - stores encrypted token that expires automatically
-        console.log("=== SAVING REFRESH TOKEN ===");
-        console.log("Redis Key:", key);
-        console.log("Encrypted Token to Save:", encryptedToken);
-        console.log("TTL (seconds):", TTL);
-        
         await setCache(key, encryptedToken, TTL);
 
         // Log success message for debugging/monitoring purposes
         console.log("✅ Refresh token saved in Redis successfully");
+        console.log("=== SAVING REFRESH TOKEN - COMPLETE ===");
     } catch (error) {
         // Log any errors that occur during Redis storage operation
-        console.error("Error saving refresh token:", error);
+        console.error("❌ Error saving refresh token:", error);
+        console.error("Stack trace:", (error as Error).stack);
 
         // Re-throw the error so calling function can handle it appropriately
         throw error;

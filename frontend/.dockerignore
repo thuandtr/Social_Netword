@@ -1,13 +1,91 @@
+# Dependencies
 node_modules
-npm-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# package-lock.json - MUST be included for npm ci
+yarn.lock
+pnpm-lock.yaml
+
+# Build output
+.next
+out
 dist
+build
+*.tsbuildinfo
+
+# Development files
 .git
 .gitignore
-README.md
-.env
-.nyc_output
-coverage
+.github
 .vscode
 .idea
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production.local
+
+# Documentation
+*.md
+README.md
+AUTH_ERROR_HANDLING.md
+AUTH_FLOW.md
+ERROR_HANDLING_GUIDE.md
+LAYOUT_IMPROVEMENTS.md
+PRODUCTION_READY_SUMMARY.md
+UI_IMPROVEMENTS_SHOWCASE.md
+
+# Test files
+test
+tests
+__tests__
+e2e
+*.test.ts
+*.test.tsx
+*.test.js
+*.spec.ts
+*.spec.tsx
+*.spec.js
+test-*.html
+test-*.js
+
+# Coverage
+coverage
+.nyc_output
+
+# Logs
+logs
+*.log
+
+# OS files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# IDE
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Docker
+Dockerfile
+Dockerfile.dev
+docker-compose*.yml
+.dockerignore
+
+# Next.js
+.next/cache
+.vercel
+
+# Misc
+tmp
+temp
+.cache
+validate-config.js

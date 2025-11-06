@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { pool } from "../mysql/connection";
-import { GET_USER_BY_EMAIL, GET_USER_BY_ID } from "../mysql/queries";
+import { GET_USER_BY_EMAIL, GET_USER_BY_ID, GET_USER_BY_USERNAME } from "../mysql/queries";
 import { INSERT_USER_STATEMENT, UPSERT_USER_DETAILS_STATEMENT, UPDATE_USER_BASIC_BY_ID } from "../mysql/mutations";
 import bcrypt from "bcrypt";
 import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
@@ -61,28 +61,46 @@ const setCookies = (
  */
 const setAuthTokens = async (id: string, email: string, res: Response) => {
     try {
+        console.log("=== SETTING AUTH TOKENS - START ===");
+        console.log("User ID:", id);
+        console.log("User Email:", email);
+
         // Generate access token (short-lived, used for API requests)
         // Contains user ID and email, expires in 1 hour
         const accessToken = generateJWTToken(id, email, "access");
+        console.log("✅ Access token generated");
         
         // Generate refresh token (long-lived, used to get new access tokens)
         // Contains user ID and email, expires in 30 days
         const refreshToken = generateJWTToken(id, email, "refresh");
+        console.log("✅ Refresh token generated");
 
         // Encrypt the refresh token for security before storing
         // Adds extra layer of protection against token theft
         const encryptRefreshToken = encryptData(refreshToken);
+        console.log("✅ Refresh token encrypted");
+        console.log("Encrypted token length:", encryptRefreshToken.length);
         
         // Store the encrypted refresh token in Redis cache
         // Maps original token to encrypted version for validation
-        await saveRefreshToken(refreshToken, encryptRefreshToken);
+        try {
+            await saveRefreshToken(refreshToken, encryptRefreshToken);
+            console.log("✅ Refresh token saved to Redis successfully");
+        } catch (saveError) {
+            console.error("❌ CRITICAL: Failed to save refresh token to Redis");
+            console.error("Save error:", saveError);
+            throw new Error("Failed to save authentication session");
+        }
 
         // Set both tokens as HTTP-only cookies in the browser
         // Uses encrypted refresh token for additional security
         setCookies(accessToken, encryptRefreshToken, res);
+        console.log("✅ Cookies set successfully");
+        console.log("=== SETTING AUTH TOKENS - COMPLETE ===");
     } catch (error) {
         // Log any errors that occur during token generation/storage
-        console.log("Error setting auth token:", error);
+        console.error("❌ Error setting auth token:", error);
+        console.error("Stack trace:", (error as Error).stack);
         // Re-throw error to be handled by calling function
         throw error;
     }
@@ -102,7 +120,6 @@ const getUser = async (req: Request, res: Response) => {
         if (!users || users.length === 0) {
             return res.status(404).json({ message: "User not found" });
         }
-        // console.log("User Retrieved:", users);
 
         // Also fetch user_details for this user (same behavior as getUserDetails)
         const [detailRows] = await conn.query("SELECT * FROM user_details WHERE user_id = ?", [id]);
@@ -143,12 +160,53 @@ const getUserById = async (req: Request, res: Response) => {
         if (!users || users.length === 0) {
             return res.status(404).json({ message: "User not found" });
         }
-        console.log("User Retrieved:", users);
 
         return res.status(200).json({ message: "User Retrieved", user: users[0] });
     } catch (error) {
         console.log("Error occured", error);
         return res.status(500).json({ message: "Unexprected Error occurred, Try agian later" });
+    } finally {
+        if (conn) conn.release();
+    }
+}
+
+const getUserByUsername = async (req: Request, res: Response) => {
+    let conn;
+    try {
+        const username = req.params.username;
+        if (!username) return res.status(400).json({ message: "Username is required" });
+
+        conn = await pool.getConnection();
+        const [rows] = await conn.query(GET_USER_BY_USERNAME, [username]);
+        const users = rows as any[];
+
+        if (!users || users.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const user = users[0];
+
+        // Also fetch user_details for this user
+        const [detailRows] = await conn.query("SELECT * FROM user_details WHERE user_id = ?", [user.id]);
+        let details: any = null;
+        const detailsArr = detailRows as any[];
+        if (detailsArr && detailsArr.length > 0) {
+            details = { ...detailsArr[0] };
+            const safeParse = (val: any) => {
+                if (val === null || val === undefined) return null;
+                if (typeof val !== 'string') return val;
+                try { return JSON.parse(val); } catch { return null; }
+            };
+            details.experiences = safeParse(details.experiences);
+            details.educations = safeParse(details.educations);
+            details.certificates = safeParse(details.certificates);
+            details.projects = safeParse(details.projects);
+        }
+
+        return res.status(200).json({ message: "User Retrieved", user, details });
+    } catch (error) {
+        console.log("Error occured", error);
+        return res.status(500).json({ message: "Unexpected Error occurred, Try again later" });
     } finally {
         if (conn) conn.release();
     }
@@ -280,13 +338,10 @@ const getUserDetails = async (req: Request, res: Response) => {
     }
 }
 
-export { getUser, createUser, loginUser, setCookies, getUserById, getUserDetails };
+export { getUser, createUser, loginUser, setCookies, getUserById, getUserByUsername, getUserDetails };
  
 // Update or create user details (profile info)
 export const updateUserDetails = async (req: Request, res: Response) => {
-    const result = req.body;
-    console.log("Update User Details Request Body:", result);
-
     let conn;
     try {
         const userId = res.locals.jwtData?.id;
@@ -359,5 +414,47 @@ export const updateUserDetails = async (req: Request, res: Response) => {
         return res.status(500).json({ message: "Unexpected error updating details" });
     } finally {
         if (conn) conn.release();
+    }
+}
+
+// Download CV as PDF (requires authentication) - Temporary blank PDF implementation
+export const downloadCV = async (req: Request, res: Response) => {
+    try {
+        // Check if user is authenticated
+        const authUserId = res.locals?.jwtData?.id;
+        if (!authUserId) {
+            return res.status(401).json({ message: "Authentication required to download CV" });
+        }
+
+        const username = req.params.username;
+        if (!username) {
+            return res.status(400).json({ message: "Username is required" });
+        }
+
+        // Generate a minimal blank PDF (Base64 encoded)
+        // This is a valid blank PDF file
+        const blankPDF = Buffer.from(
+            'JVBERi0xLjQKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURl' +
+            'Y29kZT4+CnN0cmVhbQp4nDPQM1Qo5ypUMABCM0MjBXNzSzMFQwszQwUAFe4DRAJ0bmRzdHJlYW0K' +
+            'ZW5kb2JqCgozIDAgb2JqCjM2CmVuZG9iagoKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50' +
+            'IDQgMCBSCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9Db250ZW50cyAyIDAgUgovUmVzb3VyY2Vz' +
+            'IDw8Cj4+Cj4+CmVuZG9iagoKNCAwIG9iago8PAovVHlwZSAvUGFnZXMKL0NvdW50IDEKL0tpZHMg' +
+            'WyA1IDAgUiBdCj4+CmVuZG9iagoKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgNCAw' +
+            'IFIKL0xhbmcgKGVuKQo+PgplbmRvYmoKCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAw' +
+            'MDAwMDIxNCAwMDAwMCBuIAowMDAwMDAwMDE5IDAwMDAwIG4gCjAwMDAwMDAxMzEgMDAwMDAgbiAK' +
+            'MDAwMDAwMDI2MiAwMDAwMCBuIAowMDAwMDAwMTUwIDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUg' +
+            'Ngovcm9vdCAxIDAgUgo+PgpzdGFydHhyZWYKMzIxCiUlRU9G',
+            'base64'
+        );
+
+        // Set headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${username}_CV.pdf"`);
+        res.setHeader('Content-Length', blankPDF.length.toString());
+        
+        return res.status(200).send(blankPDF);
+    } catch (error) {
+        console.log("Error downloading CV:", error);
+        return res.status(500).json({ message: "Unexpected error downloading CV" });
     }
 }

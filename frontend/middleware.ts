@@ -10,7 +10,9 @@ export const middleware = async (req: NextRequest) => {
 
     // Route classification
     const isAuthRoute = pathname === '/login' || pathname === '/signup';
-    const isProtectedRoute = pathname.startsWith('/profile') || pathname.startsWith('/update');
+    // Only protect /profile (own profile redirect) and /update, not /profile/[username]
+    const isProtectedRoute = pathname === '/profile' || pathname.startsWith('/update');
+    // /profile/[username] is public - no auth required
 
     // If already authenticated, prevent accessing auth pages
     if (isAuthRoute && !!refreshToken) {

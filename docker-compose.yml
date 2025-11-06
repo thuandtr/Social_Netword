@@ -17,9 +17,17 @@ services:
     networks:
       - auth_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 10s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ptest#1"]
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 30s
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Redis Cache
   redis:
@@ -34,14 +42,24 @@ services:
       - auth_network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 10s
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   # Backend API
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
     container_name: auth_backend
     restart: unless-stopped
     ports:
@@ -62,8 +80,12 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1/auth
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      # Google OAuth (optional)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:5000/api/v1/auth/google/callback}
     volumes:
-      - ./backend/uploads:/app/uploads  # Changed to bind mount so uploads persist on host
+      - ./backend/uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -71,12 +93,25 @@ services:
         condition: service_healthy
     networks:
       - auth_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # Frontend Application
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1/auth
     container_name: auth_frontend
     restart: unless-stopped
     ports:
@@ -89,14 +124,31 @@ services:
       PROD_BACKEND_URL: http://backend:5000/api/v1/auth
       LOCAL_BACKEND_URL: http://backend:5000/api/v1/auth
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - auth_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 volumes:
   mysql_data:
+    driver: local
   redis_data:
+    driver: local
 
 networks:
   auth_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

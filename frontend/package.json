@@ -7,12 +7,14 @@
     "build": "next build",
     "dev:turbo": "next dev --turbopack",
     "build:turbo": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "dev:docker": "docker compose -f ../docker-compose.dev.yml up frontend"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "axios": "^1.12.2",
     "framer-motion": "^12.23.24",
+    "lucide-react": "^0.552.0",
     "next": "15.5.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",

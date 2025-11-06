@@ -113,3 +113,33 @@ export const getCurrentUserOrRedirect = async (
     redirect(loginPath)
   }
 }
+
+// Get current user without redirecting (returns null if not authenticated)
+export const getCurrentUser = async (): Promise<CurrentUserResponse | null> => {
+  try {
+    const res = await axios.get('/user/me', {
+      headers: await getAuthHeaders(),
+      withCredentials: true,
+    })
+
+    return (await res.data) as CurrentUserResponse
+  } catch (error) {
+    return null
+  }
+}
+
+// Fetch user profile by username (no authentication required)
+export const getUserByUsername = async (
+  username: string
+): Promise<CurrentUserResponse | null> => {
+  try {
+    const res = await axios.get(`/user/username/${username}`, {
+      withCredentials: true,
+    })
+
+    return (await res.data) as CurrentUserResponse
+  } catch (error) {
+    console.error('Error fetching user by username:', error)
+    return null
+  }
+}

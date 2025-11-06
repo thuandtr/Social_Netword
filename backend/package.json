@@ -7,6 +7,7 @@
     "start": "cross-env NODE_ENV=production node ./dist/index.js",
     "build": "rimraf dist && tsc",
     "dev": "cross-env NODE_ENV=development nodemon --watch src --exec ts-node src/index.ts",
+    "dev:docker": "docker compose -f ../docker-compose.dev.yml up backend",
     "clean": "rimraf dist",
     "lint": "eslint 'src/**/*.{js,ts}'",
     "format": "prettier --write 'src/**/*.{js,ts}'"
@@ -33,6 +34,8 @@
   },
   "dependencies": {
     "@types/cors": "^2.8.19",
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.17",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -43,6 +46,8 @@
     "morgan": "^1.10.1",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.15.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "redis": "^5.8.3"
   }
 }

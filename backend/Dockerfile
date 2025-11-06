@@ -1,48 +1,81 @@
-# Backend Dockerfile
-FROM node:18-alpine AS base
+# ============================================
+# Backend Production Dockerfile
+# Multi-stage build for optimized image size
+# ============================================
 
-# Install dependencies only when needed
+# Base stage with Node.js LTS
+FROM node:18-alpine AS base
+LABEL maintainer="Auth MERN Backend"
+LABEL description="Production image for Auth MERN Backend API"
+
+# Install production dependencies
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
+# Add necessary packages for native dependencies
+RUN apk add --no-cache libc6-compat openssl
+
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Copy package files for dependency installation
 COPY package*.json ./
-RUN npm ci --only=production
 
-# Rebuild the source code only when needed
+# Install production dependencies only with clean install
+RUN npm ci --only=production --ignore-scripts && \
+    npm cache clean --force
+
+# Build stage - compile TypeScript
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
 
-# Install all dependencies (including dev dependencies) and build
-RUN npm install
-RUN npm run build
+# Install all dependencies (including dev dependencies for build)
+COPY package*.json ./
+RUN npm ci --ignore-scripts && \
+    npm cache clean --force
 
-# Production image, copy all the files and run the application
+# Copy source code and configuration
+COPY tsconfig.json ./
+COPY src ./src
+
+# Build the TypeScript application
+RUN npm run build && \
+    # Verify build output
+    ls -la dist/
+
+# Production runtime stage
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+# Set production environment
+ENV NODE_ENV=production \
+    PORT=5000 \
+    NODE_OPTIONS="--max-old-space-size=512"
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 backend
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 --ingroup nodejs backend
 
-# Copy the built application
-COPY --from=builder /app/dist ./dist
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
+# Copy production dependencies from deps stage
+COPY --from=deps --chown=backend:nodejs /app/node_modules ./node_modules
 
-# Create uploads directory with proper permissions
-RUN mkdir -p /app/uploads && chown -R backend:nodejs /app/uploads
+# Copy built application from builder stage
+COPY --from=builder --chown=backend:nodejs /app/dist ./dist
 
+# Copy package.json for runtime metadata
+COPY --chown=backend:nodejs package*.json ./
+
+# Create and set permissions for uploads directory
+RUN mkdir -p /app/uploads && \
+    chown -R backend:nodejs /app/uploads && \
+    chmod 755 /app/uploads
+
+# Switch to non-root user
 USER backend
 
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:5000/api/v1/auth/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Expose application port
 EXPOSE 5000
 
-ENV PORT 5000
-
-# Run node directly instead of using npm start to avoid cross-env dependency
-CMD ["node", "./dist/index.js"]
+# Start the application
+CMD ["node", "dist/index.js"]

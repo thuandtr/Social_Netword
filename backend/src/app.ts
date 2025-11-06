@@ -5,6 +5,9 @@ import cors from 'cors';
 import appRouter from './routers';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import passport from './config/oauth-config';
+import { isRedisReady } from './redis/connection';
+import { pool } from './mysql/connection';
 
 const app = express();
 
@@ -16,6 +19,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
+
+// Initialize Passport for OAuth authentication
+app.use(passport.initialize());
 
 // CORS Configuration - Allow frontend to communicate with backend
 app.use(cors({
@@ -50,6 +56,46 @@ app.use((req, res, next) => {
     console.log("Request Cookies:", JSON.stringify(req.cookies));
     next();
 })
+
+// Health check endpoint for monitoring and validation
+app.get('/health', async (req, res) => {
+    try {
+        // Check Redis connection
+        const redisStatus = isRedisReady();
+        
+        // Check MySQL connection
+        let mysqlStatus = false;
+        try {
+            const conn = await pool.getConnection();
+            await conn.ping();
+            conn.release();
+            mysqlStatus = true;
+        } catch (err) {
+            console.error("MySQL health check failed:", err);
+        }
+
+        const allHealthy = redisStatus && mysqlStatus;
+
+        res.status(allHealthy ? 200 : 503).json({
+            status: allHealthy ? 'healthy' : 'degraded',
+            timestamp: new Date().toISOString(),
+            service: 'auth-backend',
+            environment: process.env.NODE_ENV,
+            version: '1.0.0',
+            dependencies: {
+                redis: redisStatus ? 'connected' : 'disconnected',
+                mysql: mysqlStatus ? 'connected' : 'disconnected'
+            }
+        });
+    } catch (error) {
+        console.error("Health check error:", error);
+        res.status(500).json({
+            status: 'error',
+            timestamp: new Date().toISOString(),
+            error: 'Health check failed'
+        });
+    }
+});
 
 app.use("/api/v1/auth", appRouter);
 

@@ -5,6 +5,7 @@ import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid'
 import { ChevronDownIcon } from '@heroicons/react/16/solid'
 import type { User, UserDetails, ExperienceDetails, EducationDetails, CertificateDetails, ProjectDetails } from '../lib/user'
 import { updateDetailsAction } from '../actions/form-actions'
+import { resolveImageUrl } from '../lib/image-url-helper'
 
 type Experience = {
     companyName: string
@@ -58,8 +59,8 @@ const UpdateForm = ({ user, details }: Props) => {
     const [coverFile, setCoverFile] = useState<File | null>(null);
 
     // Debug: Log avatar URL
-    console.log('UpdateForm - User details:', details);
-    console.log('UpdateForm - Avatar URL:', details?.avatar_url);
+    // console.log('UpdateForm - User details:', details);
+    // console.log('UpdateForm - Avatar URL:', details?.avatar_url);
 
     const emptyExperience: Experience = {
         companyName: '',
@@ -218,7 +219,7 @@ const UpdateForm = ({ user, details }: Props) => {
                 setAvatarPreview(reader.result as string);
             };
             reader.readAsDataURL(file);
-            console.log('Avatar file selected:', file.name);
+            // console.log('Avatar file selected:', file.name);
         }
     };
 
@@ -236,7 +237,7 @@ const UpdateForm = ({ user, details }: Props) => {
         const file = e.target.files?.[0];
         if (file) {
             setCoverFile(file);
-            console.log('Cover file selected:', file.name);
+            // console.log('Cover file selected:', file.name);
         }
     };
 
@@ -308,7 +309,7 @@ const UpdateForm = ({ user, details }: Props) => {
                                         />
                                     ) : details?.avatar_url ? (
                                         <img 
-                                            src={details.avatar_url} 
+                                            src={resolveImageUrl(details.avatar_url) || ''} 
                                             alt="Current avatar" 
                                             className="size-12 rounded-full object-cover"
                                             crossOrigin="anonymous"

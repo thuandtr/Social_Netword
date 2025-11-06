@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { logoutAction } from "../actions/form-actions";
 import type { UserDetails } from "../lib/user";
 import Image from "next/image";
+import { resolveImageUrl } from "../lib/image-url-helper";
 
 type User = {
     id: number,
@@ -35,7 +36,7 @@ const ProfileCard = (props: ProfileCardProps) => {
                 {props.details?.avatar_url && (
                     <div className="mb-4 flex justify-center">
                         <img 
-                            src={props.details.avatar_url} 
+                            src={resolveImageUrl(props.details.avatar_url) || ''} 
                             alt={`${props.username}'s avatar`}
                             className="size-24 rounded-full object-cover border-2 border-white/20"
                             crossOrigin="anonymous"

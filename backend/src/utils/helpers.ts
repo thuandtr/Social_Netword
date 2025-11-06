@@ -2,7 +2,7 @@ import { verify } from "jsonwebtoken";
 import { token } from "morgan";
 import { verifyAndDecode } from "../token/jwt-token-manager";
 import { decryptData } from "../encryption";
-import { getCache } from "../redis/actions";
+import { getCache, setCache } from "../redis/actions";
 
 type TokenInfo = {
     id: string;
@@ -46,32 +46,71 @@ const validateAccessToken = async (token: string) => {
 
 const validateRefreshToken = async (encryptedToken: string) => {
     try {
+        console.log("=== VALIDATING REFRESH TOKEN - START ===");
+        
+        // Decrypt the token first
         const jwtToken = decryptData(encryptedToken);
-        console.log("jwtTokenAAA:", jwtToken);
+        console.log("jwtToken (first 50 chars):", jwtToken.substring(0, 50) + "...");
+        
+        // Verify and decode the JWT
         const decodedJWTData = await verifyAndDecode(jwtToken) as TokenInfo | null;
-        console.log("decodedJWTDataAAA:", decodedJWTData);
+        console.log("decodedJWTData:", decodedJWTData);
 
         if (!decodedJWTData) {
-            console.log("Invalid refresh token");
+            console.log("❌ Invalid refresh token - JWT verification failed");
             return false;
         }
 
-        const encryptedTokenFromCache = await getCache(generateRedisKey(decodedJWTData.id));
+        // Check if token is expired
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (decodedJWTData.exp <= currentTime) {
+            console.log("❌ Refresh token expired");
+            console.log("  - Token exp:", new Date(decodedJWTData.exp * 1000).toISOString());
+            console.log("  - Current time:", new Date(currentTime * 1000).toISOString());
+            return false;
+        }
+
+        const redisKey = generateRedisKey(decodedJWTData.id);
+        const encryptedTokenFromCache = await getCache(redisKey);
 
         console.log("=== REFRESH TOKEN COMPARISON ===");
-        console.log("Encrypted token from CLIENT:", encryptedToken);
-        console.log("Encrypted token from CACHE:", encryptedTokenFromCache);
+        console.log("Encrypted token from CLIENT (first 50):", encryptedToken.substring(0, 50) + "...");
+        console.log("Encrypted token from CACHE:", encryptedTokenFromCache ? encryptedTokenFromCache.substring(0, 50) + "..." : null);
         console.log("Client token length:", encryptedToken ? encryptedToken.length : 0);
         console.log("Cache token length:", encryptedTokenFromCache ? encryptedTokenFromCache.length : 0);
 
         if (!encryptedTokenFromCache) {
-            console.log("No refresh token found in cache");
-            return false;
+            console.log("⚠️  No refresh token found in cache for user:", decodedJWTData.id);
+            console.log("⚠️  This could mean:");
+            console.log("   1. User logged in but Redis wasn't ready");
+            console.log("   2. Redis container restarted and lost data");
+            console.log("   3. Token expired and was removed from cache");
+            console.log("   4. User never logged in (token was manually created)");
+            console.log("");
+            console.log("🔄 ATTEMPTING TO RECOVER: Saving current token to cache...");
+            
+            // Try to save the current token to cache as a recovery mechanism
+            try {
+                const ttl = generateTTL(decodedJWTData.exp);
+                if (ttl > 0) {
+                    await setCache(redisKey, encryptedToken, ttl);
+                    console.log("✅ Token saved to cache successfully");
+                    console.log("✅ REFRESH TOKEN VALIDATION PASSED (after recovery)");
+                    return { ...decodedJWTData, ttl };
+                } else {
+                    console.log("❌ Cannot recover - token already expired");
+                    return false;
+                }
+            } catch (saveError) {
+                console.error("❌ Failed to save token to cache:", saveError);
+                return false;
+            }
         }
 
+        // Compare the tokens
         const decryptedTokenFromCache = decryptData(encryptedTokenFromCache);
-        console.log("Decrypted token from CLIENT:", jwtToken);
-        console.log("Decrypted token from CACHE:", decryptedTokenFromCache);
+        console.log("Decrypted token from CLIENT (first 50):", jwtToken.substring(0, 50) + "...");
+        console.log("Decrypted token from CACHE (first 50):", decryptedTokenFromCache.substring(0, 50) + "...");
 
         const decodedJWTDataFromCache = await verifyAndDecode(decryptedTokenFromCache) as TokenInfo | null;
         console.log("Decoded JWT from cache:", decodedJWTDataFromCache);
@@ -104,16 +143,17 @@ const validateRefreshToken = async (encryptedToken: string) => {
         console.log("✅ REFRESH TOKEN VALIDATION PASSED");
 
         const ttl = generateTTL(decodedJWTDataFromCache.exp);
-        console.log("Refresh token TTL:", ttl);
+        console.log("Refresh token TTL:", ttl, "seconds");
 
         if (ttl <= 0) {
-            console.log("Refresh token expired");
+            console.log("❌ Refresh token expired");
             return false;
         }
 
         return { ...decodedJWTDataFromCache, ttl };
     } catch (error) {
-        console.error("Error validating refresh token:", error);
+        console.error("❌ Error validating refresh token:", error);
+        console.error("Stack trace:", (error as Error).stack);
         throw error;
     }
 }

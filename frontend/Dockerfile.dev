@@ -1,0 +1,40 @@
+# ============================================
+# Frontend Development Dockerfile
+# Optimized for Next.js hot reload and debugging
+# ============================================
+
+FROM node:18-alpine AS development
+
+WORKDIR /app
+
+# Install necessary build tools
+RUN apk add --no-cache \
+    libc6-compat \
+    openssl
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm install && \
+    npm cache clean --force
+
+# Copy configuration files (source will be mounted as volume)
+COPY next.config.ts tsconfig.json ./
+
+# Set environment variables
+ENV NODE_ENV=development \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0" \
+    WATCHPACK_POLLING=true \
+    NEXT_TELEMETRY_DISABLED=1
+
+# Expose port for application
+EXPOSE 3000
+
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
+
+# Run Next.js dev server with hot reload
+CMD ["npm", "run", "dev"]
