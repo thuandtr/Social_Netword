@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios from './axios'
 import { redirect } from 'next/navigation'
 import { getAuthHeaders, requireAuth } from './validateAuth'
 
@@ -102,7 +102,6 @@ export const getCurrentUserOrRedirect = async (
   try {
     const res = await axios.get('/user/me', {
       headers: await getAuthHeaders(),
-      withCredentials: true,
     })
 
     const data = (await res.data) as CurrentUserResponse
@@ -119,7 +118,6 @@ export const getCurrentUser = async (): Promise<CurrentUserResponse | null> => {
   try {
     const res = await axios.get('/user/me', {
       headers: await getAuthHeaders(),
-      withCredentials: true,
     })
 
     return (await res.data) as CurrentUserResponse
@@ -133,9 +131,7 @@ export const getUserByUsername = async (
   username: string
 ): Promise<CurrentUserResponse | null> => {
   try {
-    const res = await axios.get(`/user/username/${username}`, {
-      withCredentials: true,
-    })
+    const res = await axios.get(`/user/username/${username}`)
 
     return (await res.data) as CurrentUserResponse
   } catch (error) {

@@ -38,3 +38,39 @@ ON DUPLICATE KEY UPDATE
 export const UPDATE_USER_BASIC_BY_ID = `
 UPDATE users SET username = ?, email = ? WHERE id = ?;
 `
+
+// Activity mutations
+export const INSERT_ACTIVITY = `
+INSERT INTO activities (user_id, activity_type, activity_data) 
+VALUES (?, ?, ?);
+`;
+
+export const INSERT_ACTIVITY_REACTION = `
+INSERT INTO activity_reactions (activity_id, user_id, emoji) 
+VALUES (?, ?, ?);
+`;
+
+export const DELETE_ACTIVITY_REACTION = `
+DELETE FROM activity_reactions 
+WHERE activity_id = ? AND user_id = ?;
+`;
+
+export const INSERT_ACTIVITY_COMMENT = `
+INSERT INTO activity_comments (activity_id, author_id, content) 
+VALUES (?, ?, ?);
+`;
+
+export const INSERT_COLLABORATION_REQUEST = `
+INSERT INTO collaboration_requests 
+(project_owner_id, requester_id, activity_id, message) 
+VALUES (?, ?, ?, ?);
+`;
+
+export const UPDATE_COLLABORATION_REQUEST_STATUS = `
+UPDATE collaboration_requests SET status = ? WHERE id = ?;
+`;
+
+export const INSERT_PROJECT_CONTRIBUTOR = `
+INSERT INTO project_contributors (user_id, project_name, role) 
+VALUES (?, ?, ?);
+`;

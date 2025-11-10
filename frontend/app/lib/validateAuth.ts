@@ -1,5 +1,5 @@
 // Import axios HTTP client library for making API requests
-import axios from "axios";
+import axios from "./axios";
 // Import Next.js cookies utility for server-side cookie access
 import { cookies } from 'next/headers'
 import { redirect } from "next/navigation";
@@ -12,10 +12,6 @@ export const validateAuth = async () => {
     const cookieStore = await cookies();
 
     try {
-        // In Docker, use backend service name; outside Docker, use localhost
-        const backendURL = process.env.LOCAL_BACKEND_URL || process.env.PROD_BACKEND_URL || "http://backend:5000/api/v1/auth";
-        const URL = backendURL + '/validate/tokens';
-
         // Get token values, return null if they don't exist
         const accessToken = cookieStore.get('access_token')?.value;
         const refreshToken = cookieStore.get('refresh_token')?.value;
@@ -35,8 +31,7 @@ export const validateAuth = async () => {
         // }
 
         // Make a PUT request to the backend validation endpoint
-        const res = await axios.put(URL, {}, {
-            withCredentials: true,
+        const res = await axios.put('/validate/tokens', {}, {
             headers: {
                 // Send both access and refresh tokens in Authorization header
                 // Use empty string for access token if missing, backend will handle refresh

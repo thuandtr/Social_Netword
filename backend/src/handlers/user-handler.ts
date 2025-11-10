@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
 import { encryptData } from "../encryption";
 import { TOKEN_CONFIG, getCookieExpiration } from "../config/token-config";
+import { generateActivitiesFromProfileUpdate } from "../utils/activity-generator";
 
 /**
  * Sets authentication cookies for access and refresh tokens
@@ -371,6 +372,28 @@ export const updateUserDetails = async (req: Request, res: Response) => {
         conn = await pool.getConnection();
         await conn.beginTransaction();
 
+        // Get old data for activity generation
+        let oldData: any = null;
+        try {
+            const [oldRows] = await conn.query("SELECT * FROM user_details WHERE user_id = ?", [userId]);
+            const oldDetailsRows = oldRows as any[];
+            if (oldDetailsRows && oldDetailsRows.length > 0) {
+                oldData = oldDetailsRows[0];
+                // Parse JSON fields
+                const safeParse = (val: any) => {
+                    if (val === null || val === undefined) return null;
+                    if (typeof val !== 'string') return val;
+                    try { return JSON.parse(val); } catch { return null; }
+                };
+                oldData.experiences = safeParse(oldData.experiences);
+                oldData.educations = safeParse(oldData.educations);
+                oldData.certificates = safeParse(oldData.certificates);
+                oldData.projects = safeParse(oldData.projects);
+            }
+        } catch (err) {
+            console.log("Could not fetch old data for comparison:", err);
+        }
+
         // Optionally update basic account info if provided
         if (username || email) {
             try {
@@ -406,6 +429,18 @@ export const updateUserDetails = async (req: Request, res: Response) => {
         ]);
 
         await conn.commit();
+
+        // Generate activities based on profile changes (async, don't block response)
+        const newData = {
+            experiences,
+            educations,
+            certificates,
+            projects
+        };
+        
+        // Fire and forget - generate activities in background
+        generateActivitiesFromProfileUpdate(parseInt(userId), oldData, newData)
+            .catch(err => console.error("Error generating activities:", err));
 
         return res.status(200).json({ message: "User details saved" });
     } catch (error) {

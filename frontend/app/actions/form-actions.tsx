@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { LoginFormSchema, SignupFormSchema } from "../lib/definitions";
-import axios from "axios";
+import axios from "../lib/axios";
 import { getAuthHeaders } from "../lib/validateAuth";
 import setCookieParse from 'set-cookie-parser';
 import { cookies } from 'next/headers'
@@ -264,39 +264,19 @@ export const updateDetailsAction = async (prevState: unknown, formData: FormData
             // Check if it's a file-like object with size property (works in both browser and Node.js)
             if (!fileEntry || typeof fileEntry === 'string' || !fileEntry.size || fileEntry.size === 0) return null;
 
-            // Resolve API base ensuring it includes the /api/v1/auth prefix
-            const rawBase = process.env.LOCAL_BACKEND_URL
-                || process.env.PROD_BACKEND_URL
-                || process.env.NEXT_PUBLIC_API_URL
-                || (axios.defaults.baseURL as string | undefined)
-                || "http://localhost:5000/api/v1/auth";
-
-            const ensureApiBase = (b: string) => {
-                const trimmed = b.replace(/\/+$/, "");
-                if (/\/api\/v1\/auth$/.test(trimmed)) return trimmed;
-                return trimmed + "/api/v1/auth";
-            };
-
-            const API_BASE = ensureApiBase(rawBase);
-            const URL = API_BASE + '/user/upload';
             const headers = await getAuthHeaders();
 
             const fd = new FormData();
             fd.append('file', fileEntry, fileEntry.name);
 
-            const res = await fetch(URL, {
-                method: 'POST',
-                body: fd,
-                // Let fetch set multipart/form-data boundary automatically
+            const res = await axios.post('/user/upload', fd, {
                 headers: {
-                    Authorization: headers.Authorization,
-                },
-                // Important for cookie flow when needed
-                credentials: 'include'
+                    ...headers,
+                    // Let axios set Content-Type for multipart/form-data automatically
+                }
             });
-            if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-            const json: any = await res.json();
-            return json?.url ?? null;
+            
+            return res.data?.url ?? null;
         } catch (e) {
             console.warn('File upload skipped due to error:', e);
             return null;
@@ -334,24 +314,8 @@ export const updateDetailsAction = async (prevState: unknown, formData: FormData
     };
 
     try {
-        // Resolve API base ensuring it includes the /api/v1/auth prefix
-        const rawBase = process.env.LOCAL_BACKEND_URL
-            || process.env.PROD_BACKEND_URL
-            || process.env.NEXT_PUBLIC_API_URL
-            || (axios.defaults.baseURL as string | undefined)
-            || "http://localhost:5000/api/v1/auth";
-
-        const ensureApiBase = (b: string) => {
-            const trimmed = b.replace(/\/+$/, "");
-            if (/\/api\/v1\/auth$/.test(trimmed)) return trimmed;
-            return trimmed + "/api/v1/auth";
-        };
-
-        const API_BASE = ensureApiBase(rawBase);
-        const URL = API_BASE + '/user/details';
-
         const headers = await getAuthHeaders();
-        const res = await axios.put(URL, payload, { headers, withCredentials: true });
+        const res = await axios.put('/user/details', payload, { headers });
         const data = await res.data;
 
         return { ok: true, message: data?.message || 'Profile updated' };

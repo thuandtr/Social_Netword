@@ -1,45 +1,9 @@
-export const CREATE_TABLE_USERS = `CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);`;
- 
-export const CREATE_TABLE_USER_DETAILS = `CREATE TABLE IF NOT EXISTS user_details (
-    user_id INT PRIMARY KEY,
-    about TEXT NULL,
-    country VARCHAR(100) NULL,
-    street_address VARCHAR(255) NULL,
-    city VARCHAR(100) NULL,
-    region VARCHAR(100) NULL,
-    postal_code VARCHAR(32) NULL,
-    avatar_url VARCHAR(255) NULL,
-    cover_url VARCHAR(255) NULL,
-    experiences JSON NULL,
-    educations JSON NULL,
-    certificates JSON NULL,
-    projects JSON NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_user_details_user
-        FOREIGN KEY (user_id) REFERENCES users(id)
-        ON DELETE CASCADE
-);`;
+-- Migration: Activity Feed System
+-- Description: Creates tables for tracking user activities and enabling automatic post generation
 
-export const CREATE_TABLE_NEWSFEED_ACTIVITIES = `CREATE TABLE IF NOT EXISTS newsfeed_activities (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    activity_type ENUM('education_added', 'education_completed', 'job_started', 'job_ended', 'certificate_earned', 'project_created', 'project_updated', 'profile_updated') NOT NULL,
-    activity_data JSON NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_newsfeed_activities_user
-        FOREIGN KEY (user_id) REFERENCES users(id)
-        ON DELETE CASCADE
-);`;
-
-export const CREATE_TABLE_ACTIVITIES = `CREATE TABLE IF NOT EXISTS activities (
+-- Activity Feed Table
+-- Stores automatic activities generated from profile updates
+CREATE TABLE IF NOT EXISTS activities (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     activity_type ENUM(
@@ -59,9 +23,11 @@ export const CREATE_TABLE_ACTIVITIES = `CREATE TABLE IF NOT EXISTS activities (
         ON DELETE CASCADE,
     INDEX idx_created_at (created_at DESC),
     INDEX idx_user_id (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-export const CREATE_TABLE_ACTIVITY_REACTIONS = `CREATE TABLE IF NOT EXISTS activity_reactions (
+-- Activity Reactions Table
+-- Stores reactions to activities (single emoji per user per activity)
+CREATE TABLE IF NOT EXISTS activity_reactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     activity_id INT NOT NULL,
     user_id INT NOT NULL,
@@ -75,9 +41,11 @@ export const CREATE_TABLE_ACTIVITY_REACTIONS = `CREATE TABLE IF NOT EXISTS activ
         ON DELETE CASCADE,
     UNIQUE KEY unique_user_activity_reaction (activity_id, user_id),
     INDEX idx_activity_id (activity_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-export const CREATE_TABLE_ACTIVITY_COMMENTS = `CREATE TABLE IF NOT EXISTS activity_comments (
+-- Activity Comments Table
+-- Stores comments on activities
+CREATE TABLE IF NOT EXISTS activity_comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     activity_id INT NOT NULL,
     author_id INT NOT NULL,
@@ -91,9 +59,11 @@ export const CREATE_TABLE_ACTIVITY_COMMENTS = `CREATE TABLE IF NOT EXISTS activi
         ON DELETE CASCADE,
     INDEX idx_activity_id (activity_id),
     INDEX idx_created_at (created_at DESC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-export const CREATE_TABLE_COLLABORATION_REQUESTS = `CREATE TABLE IF NOT EXISTS collaboration_requests (
+-- Collaboration Requests Table
+-- Stores project collaboration requests
+CREATE TABLE IF NOT EXISTS collaboration_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_owner_id INT NOT NULL,
     requester_id INT NOT NULL,
@@ -114,9 +84,11 @@ export const CREATE_TABLE_COLLABORATION_REQUESTS = `CREATE TABLE IF NOT EXISTS c
     UNIQUE KEY unique_requester_activity (requester_id, activity_id),
     INDEX idx_owner_status (project_owner_id, status),
     INDEX idx_requester (requester_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-export const CREATE_TABLE_PROJECT_CONTRIBUTORS = `CREATE TABLE IF NOT EXISTS project_contributors (
+-- Project Contributors Table
+-- Tracks approved contributors for projects
+CREATE TABLE IF NOT EXISTS project_contributors (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     project_name VARCHAR(255) NOT NULL,
@@ -126,4 +98,4 @@ export const CREATE_TABLE_PROJECT_CONTRIBUTORS = `CREATE TABLE IF NOT EXISTS pro
         FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE,
     INDEX idx_user_project (user_id, project_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

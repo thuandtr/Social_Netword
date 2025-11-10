@@ -1,5 +1,13 @@
 import { createPool, Pool } from "mysql2/promise";
-import { CREATE_TABLE_USERS, CREATE_TABLE_USER_DETAILS } from "./tables";
+import { 
+    CREATE_TABLE_USERS, 
+    CREATE_TABLE_USER_DETAILS,
+    CREATE_TABLE_ACTIVITIES,
+    CREATE_TABLE_ACTIVITY_REACTIONS,
+    CREATE_TABLE_ACTIVITY_COMMENTS,
+    CREATE_TABLE_COLLABORATION_REQUESTS,
+    CREATE_TABLE_PROJECT_CONTRIBUTORS
+} from "./tables";
 
 let pool: Pool;
 
@@ -18,6 +26,14 @@ const connectToDatabase = async () => {
         await pool.execute(CREATE_TABLE_USERS);
         await pool.execute(CREATE_TABLE_USER_DETAILS);
         console.log("Tables created/verified: users, user_details");
+
+        // Create activity feed tables
+        await pool.execute(CREATE_TABLE_ACTIVITIES);
+        await pool.execute(CREATE_TABLE_ACTIVITY_REACTIONS);
+        await pool.execute(CREATE_TABLE_ACTIVITY_COMMENTS);
+        await pool.execute(CREATE_TABLE_COLLABORATION_REQUESTS);
+        await pool.execute(CREATE_TABLE_PROJECT_CONTRIBUTORS);
+        console.log("Activity feed tables created/verified");
 
         // Auto-migrate: ensure new columns exist for profile lists (compatible with older MySQL)
         const ensureColumn = async (table: string, column: string, preferredType: 'JSON' | 'TEXT' = 'JSON') => {

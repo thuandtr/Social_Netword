@@ -16,21 +16,16 @@ function getBaseURL(): string {
   }
 }
 
-axios.defaults.withCredentials = true;
+// Create a custom axios instance with baseURL
+const axiosInstance = axios.create({
+  baseURL: getBaseURL(),
+  withCredentials: true,
+  // @ts-ignore - Force IPv4 for axios to avoid IPv6 connection issues
+  family: 4,
+});
 
-// Force IPv4 for axios to avoid IPv6 connection issues
-axios.defaults.family = 4;
-
-// Force IPv4 for axios to avoid IPv6 connection issues
-axios.defaults.family = 4;
-
-// Add a request interceptor to set baseURL dynamically
-axios.interceptors.request.use(function (config) {
-    // Set baseURL dynamically on each request
-    if (!config.baseURL) {
-      config.baseURL = getBaseURL();
-    }
-
+// Add a request interceptor to log requests
+axiosInstance.interceptors.request.use(function (config) {
     // Log the URL being used for debugging
     const isServer = typeof window === "undefined";
     console.log(`[${isServer ? 'SERVER' : 'CLIENT'}] Request to:`, config.baseURL + (config.url || ''));
@@ -39,22 +34,24 @@ axios.interceptors.request.use(function (config) {
   }, function (error) {
     // Do something with request error
     return Promise.reject(error);
-  },
-//   { synchronous: true, runWhen: () => /* This function returns true */}
+  }
 );
 
 // Add a response interceptor
-axios.interceptors.response.use(function onFulfilled(response) {
+axiosInstance.interceptors.response.use(function onFulfilled(response) {
     // Any status code that lie within the range of 2xx cause this function to trigger
     // Do something with response data
-
-    // console.log("Response received:", 
-    //     response.config.baseURL! + response.config.url!, 
-    //     "Response data:", JSON.stringify(response.data));
-
     return response;
   }, function onRejected(error) {
     // Any status codes that falls outside the range of 2xx cause this function to trigger
     // Do something with response error
     return Promise.reject(error);
   });
+
+// Also configure the default axios instance for backward compatibility
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL = getBaseURL();
+// @ts-ignore
+axios.defaults.family = 4;
+
+export default axiosInstance;

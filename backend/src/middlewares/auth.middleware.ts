@@ -1,9 +1,21 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { validateAccessToken, validateRefreshToken } from "../utils/helpers";
 import { decode } from "jsonwebtoken";
-import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
+import { generateJWTToken, saveRefreshToken, verifyAndDecode } from "../token/jwt-token-manager";
 import { encryptData } from "../encryption";
 import { setCookies } from "../handlers/user-handler";
+
+// Extend Request type to include user
+declare global {
+    namespace Express {
+        interface Request {
+            user?: {
+                id: string;
+                email: string;
+            };
+        }
+    }
+}
 
 export const validateAuthMiddleware = async ( req: Request, res: Response) => {
     const authHeader = req.headers.authorization;
@@ -71,5 +83,89 @@ export const validateAuthMiddleware = async ( req: Request, res: Response) => {
     } else {
         console.log("Authentication failed - invalid tokens");
         return res.status(401).json({ success: false, message: "Not Authorized" });
+    }
+};
+
+// Middleware to verify token and attach user to request
+export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        let accessToken: string | undefined;
+        let refreshToken: string | undefined;
+
+        // Try to get tokens from Authorization header first
+        if (authHeader) {
+            if (authHeader.startsWith("Bearer ")) {
+                accessToken = authHeader.substring(7);
+            } else {
+                // Handle the format: access_token=xxx, refresh_token=xxx
+                const tokens = authHeader.split(", ");
+                const accessTokenPart = tokens.find(t => t.startsWith("access_token="));
+                const refreshTokenPart = tokens.find(t => t.startsWith("refresh_token="));
+                
+                if (accessTokenPart) {
+                    accessToken = accessTokenPart.split("=")[1];
+                }
+                if (refreshTokenPart) {
+                    refreshToken = refreshTokenPart.split("=")[1];
+                }
+            }
+        }
+
+        // Fallback to cookies if no tokens in header
+        if (!accessToken && !refreshToken) {
+            accessToken = req.cookies?.access_token;
+            refreshToken = req.cookies?.refresh_token;
+        }
+
+        // If we have neither token, return 401
+        if (!accessToken && !refreshToken) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
+
+        // Try to validate access token first
+        let decoded: any = null;
+        
+        if (accessToken && accessToken.trim() !== '') {
+            const isValid = await validateAccessToken(accessToken);
+            if (isValid) {
+                decoded = await verifyAndDecode(accessToken);
+            }
+        }
+
+        // If access token is invalid/missing but we have refresh token, validate it
+        if (!decoded && refreshToken) {
+            const decodedRefreshToken = await validateRefreshToken(refreshToken);
+            
+            if (decodedRefreshToken) {
+                // Generate new tokens
+                const newAccessToken = generateJWTToken(decodedRefreshToken.id!, decodedRefreshToken.email!, "access");
+                const newRefreshToken = generateJWTToken(decodedRefreshToken.id!, decodedRefreshToken.email!, "refresh");
+                const newEncryptedRefreshToken = encryptData(newRefreshToken);
+                
+                await saveRefreshToken(newRefreshToken, newEncryptedRefreshToken);
+                setCookies(newAccessToken, newEncryptedRefreshToken, res);
+                
+                // Decode the new access token for this request
+                decoded = await verifyAndDecode(newAccessToken);
+                
+                console.log("✅ Tokens refreshed in verifyToken middleware");
+            }
+        }
+
+        if (!decoded) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+        }
+
+        // Attach user to request
+        req.user = {
+            id: decoded.id,
+            email: decoded.email
+        };
+
+        next();
+    } catch (error) {
+        console.error("Error in verifyToken middleware:", error);
+        return res.status(401).json({ error: "Authentication failed" });
     }
 };

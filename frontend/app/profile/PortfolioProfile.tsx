@@ -6,6 +6,7 @@ import type { User, UserDetails } from "../lib/user";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { resolveImageUrl } from "../lib/image-url-helper";
+import axios from "../lib/axios";
 import { 
   Briefcase, 
   GraduationCap, 
@@ -53,25 +54,11 @@ const PortfolioProfile = ({ user, details, isOwnProfile = false }: PortfolioProf
 
   const handleDownloadCV = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/download-cv/${user.username}`, {
-        method: 'GET',
-        credentials: 'include',
+      const response = await axios.get(`/user/download-cv/${user.username}`, {
+        responseType: 'blob',
       });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          // User is not authenticated
-          setLoginPromptConfig({
-            message: `Sign in to download ${user.username}'s professional CV and access their complete profile information.`,
-            action: "download this CV"
-          });
-          setShowLoginModal(true);
-          return;
-        }
-        throw new Error('Failed to download CV');
-      }
-
-      const blob = await response.blob();
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -80,40 +67,38 @@ const PortfolioProfile = ({ user, details, isOwnProfile = false }: PortfolioProf
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error downloading CV:', error);
-      setLoginPromptConfig({
-        message: "An error occurred while downloading the CV. Please try again.",
-        action: "retry"
-      });
-      setShowLoginModal(true);
+      if (error.response?.status === 401) {
+        // User is not authenticated
+        setLoginPromptConfig({
+          message: `Sign in to download ${user.username}'s professional CV and access their complete profile information.`,
+          action: "download this CV"
+        });
+        setShowLoginModal(true);
+      } else {
+        setLoginPromptConfig({
+          message: "An error occurred while downloading the CV. Please try again.",
+          action: "retry"
+        });
+        setShowLoginModal(true);
+      }
     }
   };
 
-  const handleContact = () => {
+  const handleContact = async () => {
     // Check if user is logged in by making a simple check
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
-      credentials: 'include',
-    })
-      .then(response => {
-        if (!response.ok) {
-          setLoginPromptConfig({
-            message: `Sign in to send a message to ${user.username} and connect with them professionally.`,
-            action: "contact this user"
-          });
-          setShowLoginModal(true);
-        } else {
-          // Placeholder for contact functionality
-          alert('Contact feature coming soon!');
-        }
-      })
-      .catch(() => {
-        setLoginPromptConfig({
-          message: `Sign in to send a message to ${user.username} and connect with them professionally.`,
-          action: "contact this user"
-        });
-        setShowLoginModal(true);
+    try {
+      await axios.get('/user/me');
+      // Placeholder for contact functionality
+      alert('Contact feature coming soon!');
+    } catch (error) {
+      setLoginPromptConfig({
+        message: `Sign in to send a message to ${user.username} and connect with them professionally.`,
+        action: "contact this user"
       });
+      setShowLoginModal(true);
+    }
   };
 
   const formatDate = (dateString: string | null | undefined) => {
