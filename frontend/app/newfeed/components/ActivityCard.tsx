@@ -7,10 +7,13 @@ import Link from 'next/link'
 
 type Props = {
   activity: Activity
+  currentUserId: number
   currentUsername: string
   onReaction: (activityId: string) => void
   onComment: (activityId: string, content: string) => void
   onCollaborationRequest: (activityId: string) => void
+  onEdit: (activityId: string, activity_data: Activity['activity_data']) => Promise<void>
+  onDelete: (activityId: string) => Promise<void>
 }
 
 const ACTIVITY_CONFIG: Record<ActivityType, { icon: string; color: string; bgColor: string; label: string }> = {
@@ -22,6 +25,7 @@ const ACTIVITY_CONFIG: Record<ActivityType, { icon: string; color: string; bgCol
   project_created: { icon: '🚀', color: 'text-green-700 dark:text-green-300', bgColor: 'bg-green-100 dark:bg-green-900/30', label: 'Created Project' },
   project_updated: { icon: '🔄', color: 'text-teal-700 dark:text-teal-300', bgColor: 'bg-teal-100 dark:bg-teal-900/30', label: 'Updated Project' },
   profile_updated: { icon: '✏️', color: 'text-gray-700 dark:text-gray-300', bgColor: 'bg-gray-100 dark:bg-gray-700', label: 'Updated Profile' },
+  article_posted: { icon: '📰', color: 'text-indigo-700 dark:text-indigo-300', bgColor: 'bg-indigo-100 dark:bg-indigo-900/30', label: 'Shared Article' },
 }
 
 const formatTimeAgo = (dateString: string): string => {
@@ -176,6 +180,58 @@ const generateActivityMessage = (activity: Activity): React.ReactNode => {
         </div>
       )
 
+    case 'article_posted':
+      return (
+        <div className="space-y-3">
+          {data.image_url && (
+            <img
+              src={data.image_url}
+              alt={data.title}
+              className="w-full h-40 object-cover rounded-lg"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+          )}
+          <div>
+            {data.company_name && (
+              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400 mb-1">
+                {data.company_name}
+              </p>
+            )}
+            <a
+              href={data.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lg font-semibold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+            >
+              {data.title}
+            </a>
+          </div>
+          {data.description && (
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{data.description}</p>
+          )}
+          {data.tags && (
+            <div className="flex flex-wrap gap-2">
+              {data.tags.split(',').map((tag, idx) => (
+                <span key={idx} className="px-2 py-0.5 text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full">
+                  #{tag.trim()}
+                </span>
+              ))}
+            </div>
+          )}
+          <a
+            href={data.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Read article
+          </a>
+        </div>
+      )
+
     case 'profile_updated':
       return (
         <p className="text-gray-800 dark:text-gray-200">
@@ -193,11 +249,14 @@ const generateActivityMessage = (activity: Activity): React.ReactNode => {
   }
 }
 
-const ActivityCard: React.FC<Props> = ({ activity, currentUsername, onReaction, onComment, onCollaborationRequest }) => {
+const ActivityCard: React.FC<Props> = ({ activity, currentUserId, currentUsername, onReaction, onComment, onCollaborationRequest, onEdit, onDelete }) => {
   const [showComments, setShowComments] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const config = ACTIVITY_CONFIG[activity.activity_type]
   const isProjectActivity = activity.activity_type === 'project_created' || activity.activity_type === 'project_updated'
   const canRequestCollaboration = isProjectActivity && activity.username !== currentUsername
+  const isOwner = activity.user_id === currentUserId
+  const isArticle = activity.activity_type === 'article_posted'
 
   return (
     <article className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
@@ -226,10 +285,38 @@ const ActivityCard: React.FC<Props> = ({ activity, currentUsername, onReaction, 
           </div>
 
           {/* Activity Type Badge */}
-          <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${config.bgColor} ${config.color}`}>
-            <span>{config.icon}</span>
-            <span>{config.label}</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${config.bgColor} ${config.color}`}>
+              <span>{config.icon}</span>
+              <span>{config.label}</span>
+            </span>
+
+            {/* Owner actions (article only) */}
+            {isOwner && isArticle && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  title="Edit article"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('Delete this article?')) onDelete(activity.id)
+                  }}
+                  title="Delete article"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Activity Content */}
@@ -303,7 +390,158 @@ const ActivityCard: React.FC<Props> = ({ activity, currentUsername, onReaction, 
           onSubmit={(content: string) => onComment(activity.id, content)}
         />
       )}
+
+      {/* Edit Article Modal */}
+      {showEditModal && isArticle && (
+        <EditArticleModal
+          activity={activity}
+          onClose={() => setShowEditModal(false)}
+          onSave={async (data) => {
+            await onEdit(activity.id, data)
+            setShowEditModal(false)
+          }}
+        />
+      )}
     </article>
+  )
+}
+
+// ── Edit Article Modal ─────────────────────────────────────────────────────────
+
+type EditModalProps = {
+  activity: Activity
+  onClose: () => void
+  onSave: (data: Activity['activity_data']) => Promise<void>
+}
+
+const EditArticleModal: React.FC<EditModalProps> = ({ activity, onClose, onSave }) => {
+  const d = activity.activity_data
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    title: d.title || '',
+    url: d.url || '',
+    description: d.description || '',
+    company_name: d.company_name || '',
+    tags: d.tags || '',
+    image_url: d.image_url || '',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.title.trim() || !form.url.trim()) return
+    setSaving(true)
+    try {
+      await onSave(form)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Article</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Article Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Article URL <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="url"
+              value={form.url}
+              onChange={handleChange}
+              required
+              type="url"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Company Name</label>
+            <input
+              name="company_name"
+              value={form.company_name}
+              onChange={handleChange}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (comma-separated)</label>
+            <input
+              name="tags"
+              value={form.tags}
+              onChange={handleChange}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cover Image URL</label>
+            <input
+              name="image_url"
+              value={form.image_url}
+              onChange={handleChange}
+              type="url"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
 

@@ -59,21 +59,20 @@ const setCookies = (
  * @param id - User's unique identifier from database
  * @param email - User's email address for token payload
  * @param res - Express response object to set cookies on
+ * @param role - User's role ('user' | 'admin')
  */
-const setAuthTokens = async (id: string, email: string, res: Response) => {
+const setAuthTokens = async (id: string, email: string, res: Response, role: string = 'user') => {
     try {
         console.log("=== SETTING AUTH TOKENS - START ===");
         console.log("User ID:", id);
         console.log("User Email:", email);
 
         // Generate access token (short-lived, used for API requests)
-        // Contains user ID and email, expires in 1 hour
-        const accessToken = generateJWTToken(id, email, "access");
+        const accessToken = generateJWTToken(id, email, "access", role);
         console.log("✅ Access token generated");
         
         // Generate refresh token (long-lived, used to get new access tokens)
-        // Contains user ID and email, expires in 30 days
-        const refreshToken = generateJWTToken(id, email, "refresh");
+        const refreshToken = generateJWTToken(id, email, "refresh", role);
         console.log("✅ Refresh token generated");
 
         // Encrypt the refresh token for security before storing
@@ -249,7 +248,7 @@ const createUser = async (req: Request, res: Response) => {
         conn = await pool.getConnection();
         const [result] = await conn.query(INSERT_USER_STATEMENT, [username, email, password_hash]);
         const newUserId = (result as any).insertId;
-        await setAuthTokens(newUserId, email, res);
+        await setAuthTokens(newUserId, email, res, 'user');
 
         return res.status(201).json({ message: "User Created", result });
     } catch (error) {
@@ -287,9 +286,9 @@ const loginUser = async (req: Request, res: Response) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        await setAuthTokens(user.id, user.email, res);
+        await setAuthTokens(user.id, user.email, res, user.role || 'user');
 
-        return res.status(200).json({ message: "Login successful", user: { username: user.username, email: user.email } });
+        return res.status(200).json({ message: "Login successful", user: { username: user.username, email: user.email, role: user.role || 'user' } });
     } catch (error) {
         console.log("Login failed by Error: ", error);
         return res.status(500).json({ message: "Login failed, Please check again your Password" });
@@ -339,7 +338,26 @@ const getUserDetails = async (req: Request, res: Response) => {
     }
 }
 
+const logoutUser = async (_req: Request, res: Response) => {
+    try {
+        res.clearCookie('access_token', {
+            ...TOKEN_CONFIG.COOKIE_SETTINGS,
+            path: '/'
+        });
+        res.clearCookie('refresh_token', {
+            ...TOKEN_CONFIG.COOKIE_SETTINGS,
+            path: '/'
+        });
+
+        return res.status(200).json({ message: 'Logout successful' });
+    } catch (error) {
+        console.error('Logout failed:', error);
+        return res.status(500).json({ message: 'Logout failed' });
+    }
+}
+
 export { getUser, createUser, loginUser, setCookies, getUserById, getUserByUsername, getUserDetails };
+export { logoutUser };
  
 // Update or create user details (profile info)
 export const updateUserDetails = async (req: Request, res: Response) => {

@@ -6,6 +6,7 @@ export type User = {
   id: number
   username: string
   email: string
+  role: 'user' | 'admin'
   created_at: string
 }
 

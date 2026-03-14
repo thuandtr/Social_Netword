@@ -390,3 +390,81 @@ export const updateCollaborationRequest = async (req: Request, res: Response) =>
         res.status(500).json({ error: "Failed to update collaboration request" });
     }
 };
+
+// Update an article activity (owner only)
+export const updateActivity = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        const { activityId } = req.params;
+        const { activity_data } = req.body;
+
+        if (!activity_data) {
+            return res.status(400).json({ error: "activity_data is required" });
+        }
+
+        // Verify ownership and type
+        const [activities] = await pool.query<RowDataPacket[]>(
+            `SELECT id, user_id, activity_type FROM activities WHERE id = ?`,
+            [activityId]
+        );
+
+        if (activities.length === 0) {
+            return res.status(404).json({ error: "Activity not found" });
+        }
+
+        if (activities[0].user_id.toString() !== userId) {
+            return res.status(403).json({ error: "Not authorized to edit this activity" });
+        }
+
+        if (activities[0].activity_type !== 'article_posted') {
+            return res.status(400).json({ error: "Only article activities can be edited" });
+        }
+
+        // Validate required fields
+        const { title, url } = activity_data;
+        if (!title || !url) {
+            return res.status(400).json({ error: "Article title and URL are required" });
+        }
+
+        await pool.query(
+            `UPDATE activities SET activity_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?`,
+            [JSON.stringify(activity_data), activityId, userId]
+        );
+
+        res.status(200).json({ message: "Article updated successfully" });
+    } catch (error) {
+        console.error("Error updating activity:", error);
+        res.status(500).json({ error: "Failed to update activity" });
+    }
+};
+
+// Delete an activity (owner only)
+export const deleteActivity = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        const { activityId } = req.params;
+
+        const [activities] = await pool.query<RowDataPacket[]>(
+            `SELECT id, user_id FROM activities WHERE id = ?`,
+            [activityId]
+        );
+
+        if (activities.length === 0) {
+            return res.status(404).json({ error: "Activity not found" });
+        }
+
+        if (activities[0].user_id.toString() !== userId) {
+            return res.status(403).json({ error: "Not authorized to delete this activity" });
+        }
+
+        await pool.query(
+            `DELETE FROM activities WHERE id = ? AND user_id = ?`,
+            [activityId, userId]
+        );
+
+        res.status(200).json({ message: "Activity deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting activity:", error);
+        res.status(500).json({ error: "Failed to delete activity" });
+    }
+};

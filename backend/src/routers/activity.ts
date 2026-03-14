@@ -8,6 +8,8 @@ import {
   requestCollaboration,
   getCollaborationRequests,
   updateCollaborationRequest,
+  updateActivity,
+  deleteActivity,
 } from "../handlers/activity-handler";
 
 const activityRouter = Router();
@@ -34,5 +36,11 @@ activityRouter.get("/collaborations", verifyToken, getCollaborationRequests);
 
 // Update collaboration request status (accept/reject)
 activityRouter.put("/collaborations/:requestId", verifyToken, updateCollaborationRequest);
+
+// Update an article activity (owner only)
+activityRouter.put("/:activityId", verifyToken, updateActivity);
+
+// Delete an activity (owner only)
+activityRouter.delete("/:activityId", verifyToken, deleteActivity);
 
 export default activityRouter;

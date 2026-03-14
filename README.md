@@ -183,6 +183,48 @@ frontend/app/
 - MySQL 8.0+
 - Redis 7.0+
 
+### **Quick Start Options**
+
+#### **Option 1: Start Everything (Recommended)**
+```powershell
+# Start all services with Docker
+.\dev-start.ps1
+```
+This starts MySQL, Redis, Backend, and Frontend together.
+
+#### **Option 2: Frontend Only Development**
+```powershell
+# Start frontend independently (without backend)
+.\frontend-only.ps1
+
+# Or with Docker:
+.\frontend-only.ps1 --docker
+
+# Or manually:
+cd frontend
+npm install
+npm run dev
+```
+Perfect when working on UI/UX without needing backend functionality.
+
+#### **Option 3: Backend Only Development**
+```powershell
+# Start backend services only (MySQL, Redis, Backend)
+.\backend-only.ps1
+```
+Useful when working on API development while frontend is separate.
+
+#### **Option 4: Separate Terminal Development**
+```powershell
+# Terminal 1: Start backend services
+docker compose -f docker-compose.dev.yml up mysql redis backend
+
+# Terminal 2: Start frontend
+cd frontend
+npm run dev
+```
+Best for independent debugging of frontend and backend.
+
 ### **Installation**
 
 1. **Clone the repository**

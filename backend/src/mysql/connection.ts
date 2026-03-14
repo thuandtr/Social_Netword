@@ -6,7 +6,8 @@ import {
     CREATE_TABLE_ACTIVITY_REACTIONS,
     CREATE_TABLE_ACTIVITY_COMMENTS,
     CREATE_TABLE_COLLABORATION_REQUESTS,
-    CREATE_TABLE_PROJECT_CONTRIBUTORS
+    CREATE_TABLE_PROJECT_CONTRIBUTORS,
+    CREATE_TABLE_ARTICLES
 } from "./tables";
 
 let pool: Pool;
@@ -65,6 +66,26 @@ const connectToDatabase = async () => {
         await ensureColumn('user_details', 'educations', 'JSON');
         await ensureColumn('user_details', 'certificates', 'JSON');
         await ensureColumn('user_details', 'projects', 'JSON');
+
+        // Create articles table for company website
+        await pool.execute(CREATE_TABLE_ARTICLES);
+        console.log("Articles table created/verified");
+
+        // Ensure role column exists on users table (admin/user roles)
+        const dbName = process.env.MYSQL_DATABASE as string;
+        const [roleRows] = await pool.query(
+            `SELECT COUNT(*) as cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'`,
+            [dbName]
+        );
+        const roleExists = Array.isArray(roleRows) && (roleRows as any)[0]?.cnt > 0;
+        if (!roleExists) {
+            try {
+                await pool.execute(`ALTER TABLE users ADD COLUMN role ENUM('user', 'admin') NOT NULL DEFAULT 'user'`);
+                console.log("Added role column to users table");
+            } catch (err) {
+                console.warn("Could not add role column to users:", err);
+            }
+        }
     } catch (error) {
         console.error("Database connection failed:", error);
         throw error;

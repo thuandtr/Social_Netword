@@ -1,13 +1,13 @@
 export const GET_USER_BY_ID = `
-    SELECT id, username, email, created_at FROM users WHERE id = ?;
+    SELECT id, username, email, role, created_at FROM users WHERE id = ?;
 `;
 
 export const GET_USER_BY_EMAIL = `
-    SELECT username, email, password_hash, id FROM users WHERE email = ?;
+    SELECT username, email, password_hash, id, role FROM users WHERE email = ?;
 `;
 
 export const GET_USER_BY_USERNAME = `
-    SELECT id, username, email, created_at FROM users WHERE username = ?;
+    SELECT id, username, email, role, created_at FROM users WHERE username = ?;
 `;
 
 // Activity queries
@@ -99,4 +99,56 @@ export const GET_COLLABORATION_REQUEST_BY_ID = `
 export const CHECK_EXISTING_COLLABORATION_REQUEST = `
     SELECT id, status FROM collaboration_requests 
     WHERE requester_id = ? AND activity_id = ?;
+`;
+
+// Article queries for company website
+export const GET_PUBLISHED_ARTICLES = `
+    SELECT 
+        a.id, a.title, a.excerpt, a.thumbnail_url, a.category, a.tags,
+        a.created_at, a.updated_at,
+        u.username AS author_username,
+        ud.avatar_url AS author_avatar
+    FROM articles a
+    JOIN users u ON a.author_id = u.id
+    LEFT JOIN user_details ud ON a.author_id = ud.user_id
+    WHERE a.status = 'published'
+    ORDER BY a.created_at DESC
+    LIMIT ? OFFSET ?;
+`;
+
+export const GET_ALL_ARTICLES = `
+    SELECT 
+        a.id, a.title, a.excerpt, a.thumbnail_url, a.category, a.tags,
+        a.status, a.created_at, a.updated_at,
+        u.username AS author_username,
+        ud.avatar_url AS author_avatar
+    FROM articles a
+    JOIN users u ON a.author_id = u.id
+    LEFT JOIN user_details ud ON a.author_id = ud.user_id
+    ORDER BY a.created_at DESC
+    LIMIT ? OFFSET ?;
+`;
+
+export const GET_ARTICLE_BY_ID_PUBLIC = `
+    SELECT 
+        a.id, a.title, a.content, a.excerpt, a.thumbnail_url, a.category, a.tags,
+        a.created_at, a.updated_at,
+        u.username AS author_username,
+        ud.avatar_url AS author_avatar
+    FROM articles a
+    JOIN users u ON a.author_id = u.id
+    LEFT JOIN user_details ud ON a.author_id = ud.user_id
+    WHERE a.id = ? AND a.status = 'published';
+`;
+
+export const GET_ARTICLE_BY_ID_ADMIN = `
+    SELECT 
+        a.id, a.title, a.content, a.excerpt, a.thumbnail_url, a.category, a.tags,
+        a.status, a.author_id, a.created_at, a.updated_at,
+        u.username AS author_username,
+        ud.avatar_url AS author_avatar
+    FROM articles a
+    JOIN users u ON a.author_id = u.id
+    LEFT JOIN user_details ud ON a.author_id = ud.user_id
+    WHERE a.id = ?;
 `;

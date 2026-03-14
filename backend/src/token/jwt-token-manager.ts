@@ -21,11 +21,12 @@ accessToken expires — without requiring the user to log in again.
  * - Signs token with JWT_SECRET for security
  * - Uses centralized TOKEN_CONFIG for consistent lifetimes
  */
-const generateJWTToken = (id: string, email: string, tokenType: "access" | "refresh") => {
+const generateJWTToken = (id: string, email: string, tokenType: "access" | "refresh", role: string = 'user') => {
     const token = jwt.sign(
         {
             id,
             email,
+            role,
         },
         process.env.JWT_SECRET as string,
         {

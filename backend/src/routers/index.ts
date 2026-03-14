@@ -1,8 +1,8 @@
 import { Router } from "express";
 import usersRouter from "./user";
 import validationRouter from "./validation";
-import oauthRouter from "./oauth";
 import activityRouter from "./activity";
+import articleRouter from "./article";
 
 const appRouter = Router();
 // /api/v1/auth
@@ -10,6 +10,6 @@ const appRouter = Router();
 appRouter.use("/user", usersRouter);
 appRouter.use("/validate", validationRouter);
 appRouter.use("/activities", activityRouter);
-appRouter.use("/", oauthRouter); // OAuth routes: /google, /google/callback
+appRouter.use("/articles", articleRouter);
 
 export default appRouter;

@@ -5,7 +5,6 @@ import cors from 'cors';
 import appRouter from './routers';
 import cookieParser from 'cookie-parser';
 import path from 'path';
-import passport from './config/oauth-config';
 import { isRedisReady } from './redis/connection';
 import { pool } from './mysql/connection';
 
@@ -19,9 +18,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
-
-// Initialize Passport for OAuth authentication
-app.use(passport.initialize());
 
 // CORS Configuration - Allow frontend to communicate with backend
 app.use(cors({

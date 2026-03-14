@@ -74,3 +74,27 @@ export const INSERT_PROJECT_CONTRIBUTOR = `
 INSERT INTO project_contributors (user_id, project_name, role) 
 VALUES (?, ?, ?);
 `;
+
+export const UPDATE_ACTIVITY = `
+UPDATE activities SET activity_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?;
+`;
+
+export const DELETE_ACTIVITY = `
+DELETE FROM activities WHERE id = ? AND user_id = ?;
+`;
+
+// Article mutations for company website
+export const INSERT_ARTICLE = `
+INSERT INTO articles (title, content, excerpt, thumbnail_url, author_id, status, category, tags)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+`;
+
+export const UPDATE_ARTICLE = `
+UPDATE articles
+SET title = ?, content = ?, excerpt = ?, thumbnail_url = ?, status = ?, category = ?, tags = ?, updated_at = NOW()
+WHERE id = ?;
+`;
+
+export const DELETE_ARTICLE = `
+DELETE FROM articles WHERE id = ?;
+`;

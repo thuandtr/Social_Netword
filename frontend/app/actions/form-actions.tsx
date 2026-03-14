@@ -117,7 +117,7 @@ export const loginAction = async (prevState: unknown, formData: FormData) => {
         };
     }
     
-    redirect('/profile');
+    redirect('/');
 }
 
 export const signupAction = async (prevState: unknown, formData: FormData) => {
@@ -216,7 +216,7 @@ export const signupAction = async (prevState: unknown, formData: FormData) => {
         };
     }
     
-    redirect('/profile');
+    redirect('/');
 }
 
 export const logoutAction = async () => {

@@ -12,6 +12,7 @@ declare global {
             user?: {
                 id: string;
                 email: string;
+                role: string;
             };
         }
     }
@@ -56,8 +57,9 @@ export const validateAuthMiddleware = async ( req: Request, res: Response) => {
         console.log("User ID:", decodeRefreshToken!.id);
         console.log("User Email:", decodeRefreshToken!.email);
         
-        const newAccessToken = generateJWTToken(decodeRefreshToken!.id!, decodeRefreshToken.email!, "access");
-        const newRefreshToken = generateJWTToken(decodeRefreshToken!.id!, decodeRefreshToken.email!, "refresh");
+        const userRole = (decodeRefreshToken as any).role || 'user';
+        const newAccessToken = generateJWTToken(decodeRefreshToken!.id!, decodeRefreshToken.email!, "access", userRole);
+        const newRefreshToken = generateJWTToken(decodeRefreshToken!.id!, decodeRefreshToken.email!, "refresh", userRole);
         
         console.log("New Access Token:", newAccessToken);
         console.log("New Refresh Token:", newRefreshToken);
@@ -138,9 +140,10 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
             const decodedRefreshToken = await validateRefreshToken(refreshToken);
             
             if (decodedRefreshToken) {
-                // Generate new tokens
-                const newAccessToken = generateJWTToken(decodedRefreshToken.id!, decodedRefreshToken.email!, "access");
-                const newRefreshToken = generateJWTToken(decodedRefreshToken.id!, decodedRefreshToken.email!, "refresh");
+                // Generate new tokens preserving the role from the refresh token
+                const userRole = (decodedRefreshToken as any).role || 'user';
+                const newAccessToken = generateJWTToken(decodedRefreshToken.id!, decodedRefreshToken.email!, "access", userRole);
+                const newRefreshToken = generateJWTToken(decodedRefreshToken.id!, decodedRefreshToken.email!, "refresh", userRole);
                 const newEncryptedRefreshToken = encryptData(newRefreshToken);
                 
                 await saveRefreshToken(newRefreshToken, newEncryptedRefreshToken);
@@ -160,7 +163,8 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
         // Attach user to request
         req.user = {
             id: decoded.id,
-            email: decoded.email
+            email: decoded.email,
+            role: (decoded as any).role || 'user'
         };
 
         next();
