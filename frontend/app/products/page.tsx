@@ -127,7 +127,6 @@ function ProductCard({ product, cardTopBar }: { product: Product; cardTopBar: st
       : {};
 
   return (
-    // @ts-expect-error dynamic tag
     <Tag
       {...props}
       className="group/card relative flex flex-col items-center bg-white rounded-2xl p-7 shadow-sm border border-gray-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl overflow-hidden cursor-pointer"
