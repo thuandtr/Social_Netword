@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { pool } from "../mysql/connection";
 import { GET_USER_BY_EMAIL, GET_USER_BY_ID, GET_USER_BY_USERNAME } from "../mysql/queries";
-import { INSERT_USER_STATEMENT, UPSERT_USER_DETAILS_STATEMENT, UPDATE_USER_BASIC_BY_ID } from "../mysql/mutations";
+import { INSERT_USER_STATEMENT, INSERT_USER_WITH_ROLE_STATEMENT, UPSERT_USER_DETAILS_STATEMENT, UPDATE_USER_BASIC_BY_ID } from "../mysql/mutations";
 import bcrypt from "bcrypt";
 import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
 import { encryptData } from "../encryption";
@@ -259,6 +259,41 @@ const createUser = async (req: Request, res: Response) => {
     }
 }
 
+const createAdminUser = async (req: Request, res: Response) => {
+    let conn;
+    try {
+        const { username, email, password } = req.body;
+
+        if (!username || !email || !password) {
+            return res.status(422).json({ message: "Username, Email and Password are required" });
+        }
+
+        const users = await getUserByEmail(email);
+
+        if (users && users.length > 0) {
+            return res.status(409).json({ message: `User with this email already exists, userId: ${users[0].id}` });
+        }
+
+        const password_hash = await bcrypt.hash(password, 10);
+
+        conn = await pool.getConnection();
+        const [result] = await conn.query(INSERT_USER_WITH_ROLE_STATEMENT, [username, email, password_hash, 'admin']);
+        const newUserId = (result as any).insertId;
+
+        await setAuthTokens(newUserId, email, res, 'admin');
+
+        return res.status(201).json({
+            message: "Admin user created",
+            user: { id: newUserId, username, email, role: 'admin' }
+        });
+    } catch (error) {
+        console.log("Error occured", error);
+        return res.status(500).json({ message: "Unexpected Error occurred, Try again later" });
+    } finally {
+        if (conn) conn.release();
+    }
+}
+
 const loginUser = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
@@ -356,7 +391,7 @@ const logoutUser = async (_req: Request, res: Response) => {
     }
 }
 
-export { getUser, createUser, loginUser, setCookies, getUserById, getUserByUsername, getUserDetails };
+export { getUser, createUser, createAdminUser, loginUser, setCookies, getUserById, getUserByUsername, getUserDetails };
 export { logoutUser };
  
 // Update or create user details (profile info)

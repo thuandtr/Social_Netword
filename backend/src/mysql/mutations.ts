@@ -2,6 +2,10 @@ export const INSERT_USER_STATEMENT = `
 INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?);
 `
 
+export const INSERT_USER_WITH_ROLE_STATEMENT = `
+INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?);
+`
+
 export const UPSERT_USER_DETAILS_STATEMENT = `
 INSERT INTO user_details (
 	user_id,

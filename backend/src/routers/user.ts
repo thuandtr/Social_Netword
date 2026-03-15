@@ -13,6 +13,7 @@ const usersRouter = Router();
 // 5. Security layer: Verify the authorization header format and refresh token validity
 usersRouter.get("/me", validateAuthTokens, usersHandler.getUser);
 usersRouter.post("/signup", usersHandler.createUser);
+usersRouter.post("/signup-admin", usersHandler.createAdminUser);
 usersRouter.post("/login", usersHandler.loginUser);
 usersRouter.post("/logout", usersHandler.logoutUser);
 
