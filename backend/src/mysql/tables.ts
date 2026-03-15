@@ -147,3 +147,15 @@ export const CREATE_TABLE_ARTICLES = `CREATE TABLE IF NOT EXISTS articles (
     INDEX idx_created_at (created_at DESC),
     INDEX idx_author (author_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+
+export const CREATE_TABLE_COMPANY_ACHIEVEMENTS = `CREATE TABLE IF NOT EXISTS company_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    subtitle VARCHAR(255) NULL,
+    image_url VARCHAR(500) NOT NULL,
+    display_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_company_achievements_active_order (is_active, display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;

@@ -14,6 +14,14 @@ interface Article {
   author_username: string
 }
 
+interface Achievement {
+  id: number
+  title: string
+  subtitle: string | null
+  image_url: string
+  display_order: number
+}
+
 async function getPublishedArticles(): Promise<Article[]> {
   try {
     const res = await axiosInstance.get('/articles', { params: { limit: 9 } })
@@ -23,14 +31,57 @@ async function getPublishedArticles(): Promise<Article[]> {
   }
 }
 
+async function getCompanyAchievements(): Promise<Achievement[]> {
+  const fallback: Achievement[] = [
+    {
+      id: 1,
+      title: 'Giải thưởng Công nghệ Thông tin TP.HCM 2017',
+      subtitle: 'TP.HCM ICT Awards',
+      image_url: '/uploads/achievements/achievement-ict-award.jpg',
+      display_order: 1,
+    },
+    {
+      id: 2,
+      title: 'Bằng khen UBND TP.HCM',
+      subtitle: 'Sản phẩm công nghệ tiêu biểu',
+      image_url: '/uploads/achievements/achievement-certificate.png',
+      display_order: 2,
+    },
+    {
+      id: 3,
+      title: 'Tư duy Sáng tạo và Chuyển đổi số',
+      subtitle: 'Liên hiệp các hội KHKT Việt Nam',
+      image_url: '/uploads/achievements/achievement-trophy-gold.png',
+      display_order: 3,
+    },
+  ]
+
+  try {
+    const res = await axiosInstance.get('/achievements')
+    return res.data.achievements ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 }
 
+function resolveImageUrl(url: string) {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/uploads')) {
+    return `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}${url}`
+  }
+  return url
+}
+
 export default async function HomePage() {
   const articles = await getPublishedArticles()
+  const achievements = await getCompanyAchievements()
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -54,6 +105,69 @@ export default async function HomePage() {
           Với hơn <span className="font-bold text-gray-800">30 năm kinh nghiệm,</span> các sản phẩm và dịch vụ của AQTech không ngừng được cải tiến để đáp ứng nhu cầu thực tiễn. Đặc biệt, từ năm{' '}
           <span className="font-bold text-gray-800">2009,</span> công ty đã mở rộng triển khai giải pháp cho Bộ Giáo dục &amp; Đào tạo Lào, khẳng định uy tín và chất lượng trên thị trường khu vực.
         </p>
+
+        {/* Achievement showcase */}
+        <div className="mt-14 rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-5 md:p-10 text-left shadow-[0_24px_80px_-30px_rgba(8,47,73,0.8)]">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10 items-start">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
+                Thành tựu nổi bật
+              </div>
+              <h2 className="mt-5 text-3xl md:text-4xl font-black tracking-tight text-white leading-tight">
+                TƯ DUY SÁNG TẠO
+              </h2>
+              <p className="mt-3 text-cyan-100/80 text-base md:text-lg leading-relaxed">
+                Chìa khóa cho giải pháp vượt trội trong thời đại số
+              </p>
+
+              <div className="mt-8 space-y-4">
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-cyan-50 backdrop-blur-sm">
+                  <span className="mr-2" aria-hidden>🚀</span>
+                  Giải pháp công nghệ tiên tiến cho giáo dục hiện đại
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-cyan-50 backdrop-blur-sm">
+                  <span className="mr-2" aria-hidden>🤝</span>
+                  Đồng hành cùng giáo dục trong kỷ nguyên số
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-cyan-50 backdrop-blur-sm">
+                  <span className="mr-2" aria-hidden>✨</span>
+                  Chuyển đổi số giáo dục - Kiến tạo tương lai
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5">
+              {achievements.map((achievement, idx) => (
+                <div
+                  key={achievement.id}
+                  className="group relative overflow-hidden rounded-2xl border border-cyan-200/15 bg-white/[0.03] p-4 backdrop-blur-md"
+                >
+                  <div className="pointer-events-none absolute -top-14 -right-10 h-28 w-28 rounded-full bg-cyan-400/20 blur-2xl" />
+                  <div className="relative flex items-start gap-4">
+                    <img
+                      src={resolveImageUrl(achievement.image_url)}
+                      alt={achievement.title}
+                      className="h-24 w-24 md:h-28 md:w-28 rounded-xl object-cover ring-1 ring-cyan-200/20 transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div>
+                      <div className="inline-flex items-center rounded-full bg-cyan-400/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-cyan-200">
+                        #{idx + 1} Achievement
+                      </div>
+                      <h3 className="mt-2 text-sm md:text-base font-bold text-white leading-snug">
+                        {achievement.title}
+                      </h3>
+                      {achievement.subtitle && (
+                        <p className="mt-1 text-xs md:text-sm text-cyan-100/70">
+                          {achievement.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Product Groups Overview */}

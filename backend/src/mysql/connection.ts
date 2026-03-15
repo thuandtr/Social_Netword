@@ -7,7 +7,8 @@ import {
     CREATE_TABLE_ACTIVITY_COMMENTS,
     CREATE_TABLE_COLLABORATION_REQUESTS,
     CREATE_TABLE_PROJECT_CONTRIBUTORS,
-    CREATE_TABLE_ARTICLES
+    CREATE_TABLE_ARTICLES,
+    CREATE_TABLE_COMPANY_ACHIEVEMENTS
 } from "./tables";
 
 let pool: Pool;
@@ -70,6 +71,39 @@ const connectToDatabase = async () => {
         // Create articles table for company website
         await pool.execute(CREATE_TABLE_ARTICLES);
         console.log("Articles table created/verified");
+
+        // Create company achievements table for homepage showcase
+        await pool.execute(CREATE_TABLE_COMPANY_ACHIEVEMENTS);
+        console.log("Company achievements table created/verified");
+
+        // Seed default achievement records if table is empty
+        const [achievementRows] = await pool.query(
+            `SELECT COUNT(*) as cnt FROM company_achievements`
+        );
+        const achievementCount = Array.isArray(achievementRows) ? (achievementRows as any)[0]?.cnt || 0 : 0;
+        if (achievementCount === 0) {
+            await pool.execute(
+                `INSERT INTO company_achievements (title, subtitle, image_url, display_order, is_active) VALUES
+                (?, ?, ?, ?, 1),
+                (?, ?, ?, ?, 1),
+                (?, ?, ?, ?, 1)`,
+                [
+                    "Giải thưởng Công nghệ Thông tin TP.HCM 2017",
+                    "TP.HCM ICT Awards",
+                    "/uploads/achievements/achievement-ict-award.jpg",
+                    1,
+                    "Bằng khen UBND TP.HCM",
+                    "Sản phẩm công nghệ tiêu biểu",
+                    "/uploads/achievements/achievement-certificate.png",
+                    2,
+                    "Tư duy Sáng tạo và Chuyển đổi số",
+                    "Liên hiệp các hội KHKT Việt Nam",
+                    "/uploads/achievements/achievement-trophy-gold.png",
+                    3,
+                ]
+            );
+            console.log("Seeded default company achievements");
+        }
 
         // Ensure role column exists on users table (admin/user roles)
         const dbName = process.env.MYSQL_DATABASE as string;

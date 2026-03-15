@@ -152,3 +152,10 @@ export const GET_ARTICLE_BY_ID_ADMIN = `
     LEFT JOIN user_details ud ON a.author_id = ud.user_id
     WHERE a.id = ?;
 `;
+
+export const GET_ACTIVE_COMPANY_ACHIEVEMENTS = `
+    SELECT id, title, subtitle, image_url, display_order
+    FROM company_achievements
+    WHERE is_active = 1
+    ORDER BY display_order ASC, id ASC;
+`;
