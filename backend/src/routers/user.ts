@@ -1,6 +1,8 @@
 import { Router } from "express";
 import * as usersHandler from "../handlers/user-handler";
 import { validateAuthTokens } from "../middlewares/jwt-token-validator";
+import { verifyToken } from "../middlewares/auth.middleware";
+import { requireAdmin } from "../middlewares/admin.middleware";
 
 const usersRouter = Router();
 // /api/v1/auth/user
@@ -13,8 +15,8 @@ const usersRouter = Router();
 // 5. Security layer: Verify the authorization header format and refresh token validity
 usersRouter.get("/me", validateAuthTokens, usersHandler.getUser);
 usersRouter.post("/signup", usersHandler.createUser);
-usersRouter.post("/signup-admin", usersHandler.createAdminUser);
 usersRouter.post("/login", usersHandler.loginUser);
 usersRouter.post("/logout", usersHandler.logoutUser);
+usersRouter.patch("/:id/access", verifyToken, requireAdmin, usersHandler.updateUserAccess);
 
 export default usersRouter;

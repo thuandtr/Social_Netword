@@ -3,6 +3,8 @@ export const CREATE_TABLE_USERS = `CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NULL,
+    role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+    permissions JSON NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`;
  

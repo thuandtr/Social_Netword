@@ -5,6 +5,14 @@ import { generateJWTToken, saveRefreshToken, verifyAndDecode } from "../token/jw
 import { encryptData } from "../encryption";
 import { setCookies } from "../handlers/user-handler";
 
+const parseTokenPart = (part: string, key: string): string | undefined => {
+    const prefix = `${key}=`;
+    if (!part || !part.startsWith(prefix)) {
+        return undefined;
+    }
+    return part.slice(prefix.length);
+};
+
 // Extend Request type to include user
 declare global {
     namespace Express {
@@ -13,6 +21,7 @@ declare global {
                 id: string;
                 email: string;
                 role: string;
+                permissions: string[];
             };
         }
     }
@@ -26,20 +35,24 @@ export const validateAuthMiddleware = async ( req: Request, res: Response) => {
         return res.status(401).json({ error: "Authorization header is required" });
     }
 
-    const tokens = authHeader.split(", ");
+    const tokens = authHeader.split(",").map((t) => t.trim());
     if (tokens.length !== 2) {
         return res.status(401).json({ error: "Invalid authorization header format" });
     }
 
     const [access, refresh] = tokens;
-    const accessToken = access && access.split("=")[1];
-    const refreshToken = refresh.split("=")[1];
+    const accessToken = parseTokenPart(access, "access_token");
+    const refreshToken = parseTokenPart(refresh, "refresh_token");
 
     console.log("=== TOKEN DEBUGGING ===");
     console.log("Access Token from client:", accessToken);
     console.log("Refresh Token from client:", refreshToken);
     console.log("Access Token length:", accessToken ? accessToken.length : 0);
     console.log("Refresh Token length:", refreshToken ? refreshToken.length : 0);
+
+    if (!refreshToken) {
+        return res.status(401).json({ error: "Refresh token is required" });
+    }
 
     // Handle empty access token (but don't validate if it's empty or undefined)
     const isAccessTokenValid = accessToken && accessToken.trim() !== '' ? await validateAccessToken(accessToken) : false;
@@ -58,8 +71,23 @@ export const validateAuthMiddleware = async ( req: Request, res: Response) => {
         console.log("User Email:", decodeRefreshToken!.email);
         
         const userRole = (decodeRefreshToken as any).role || 'user';
-        const newAccessToken = generateJWTToken(decodeRefreshToken!.id!, decodeRefreshToken.email!, "access", userRole);
-        const newRefreshToken = generateJWTToken(decodeRefreshToken!.id!, decodeRefreshToken.email!, "refresh", userRole);
+        const userPermissions = Array.isArray((decodeRefreshToken as any).permissions)
+            ? (decodeRefreshToken as any).permissions
+            : [];
+        const newAccessToken = generateJWTToken(
+            decodeRefreshToken!.id!,
+            decodeRefreshToken.email!,
+            "access",
+            userRole,
+            userPermissions
+        );
+        const newRefreshToken = generateJWTToken(
+            decodeRefreshToken!.id!,
+            decodeRefreshToken.email!,
+            "refresh",
+            userRole,
+            userPermissions
+        );
         
         console.log("New Access Token:", newAccessToken);
         console.log("New Refresh Token:", newRefreshToken);
@@ -101,15 +129,15 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
                 accessToken = authHeader.substring(7);
             } else {
                 // Handle the format: access_token=xxx, refresh_token=xxx
-                const tokens = authHeader.split(", ");
+                const tokens = authHeader.split(",").map((t) => t.trim());
                 const accessTokenPart = tokens.find(t => t.startsWith("access_token="));
                 const refreshTokenPart = tokens.find(t => t.startsWith("refresh_token="));
                 
                 if (accessTokenPart) {
-                    accessToken = accessTokenPart.split("=")[1];
+                    accessToken = parseTokenPart(accessTokenPart, "access_token");
                 }
                 if (refreshTokenPart) {
-                    refreshToken = refreshTokenPart.split("=")[1];
+                    refreshToken = parseTokenPart(refreshTokenPart, "refresh_token");
                 }
             }
         }
@@ -142,8 +170,23 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
             if (decodedRefreshToken) {
                 // Generate new tokens preserving the role from the refresh token
                 const userRole = (decodedRefreshToken as any).role || 'user';
-                const newAccessToken = generateJWTToken(decodedRefreshToken.id!, decodedRefreshToken.email!, "access", userRole);
-                const newRefreshToken = generateJWTToken(decodedRefreshToken.id!, decodedRefreshToken.email!, "refresh", userRole);
+                const userPermissions = Array.isArray((decodedRefreshToken as any).permissions)
+                    ? (decodedRefreshToken as any).permissions
+                    : [];
+                const newAccessToken = generateJWTToken(
+                    decodedRefreshToken.id!,
+                    decodedRefreshToken.email!,
+                    "access",
+                    userRole,
+                    userPermissions
+                );
+                const newRefreshToken = generateJWTToken(
+                    decodedRefreshToken.id!,
+                    decodedRefreshToken.email!,
+                    "refresh",
+                    userRole,
+                    userPermissions
+                );
                 const newEncryptedRefreshToken = encryptData(newRefreshToken);
                 
                 await saveRefreshToken(newRefreshToken, newEncryptedRefreshToken);
@@ -164,7 +207,8 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
         req.user = {
             id: decoded.id,
             email: decoded.email,
-            role: (decoded as any).role || 'user'
+            role: (decoded as any).role || 'user',
+            permissions: Array.isArray((decoded as any).permissions) ? (decoded as any).permissions : []
         };
 
         next();

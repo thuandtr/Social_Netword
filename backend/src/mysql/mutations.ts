@@ -1,9 +1,9 @@
 export const INSERT_USER_STATEMENT = `
-INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?);
+INSERT INTO users (username, email, password_hash, role, permissions) VALUES (?, ?, ?, ?, ?);
 `
 
 export const INSERT_USER_WITH_ROLE_STATEMENT = `
-INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?);
+INSERT INTO users (username, email, password_hash, role, permissions) VALUES (?, ?, ?, ?, ?);
 `
 
 export const UPSERT_USER_DETAILS_STATEMENT = `
@@ -41,6 +41,10 @@ ON DUPLICATE KEY UPDATE
 
 export const UPDATE_USER_BASIC_BY_ID = `
 UPDATE users SET username = ?, email = ? WHERE id = ?;
+`
+
+export const UPDATE_USER_ACCESS_BY_ID = `
+UPDATE users SET role = ?, permissions = ? WHERE id = ?;
 `
 
 // Activity mutations

@@ -1,7 +1,12 @@
 import { Request, Response } from "express";
 import { pool } from "../mysql/connection";
 import { GET_USER_BY_EMAIL, GET_USER_BY_ID, GET_USER_BY_USERNAME } from "../mysql/queries";
-import { INSERT_USER_STATEMENT, INSERT_USER_WITH_ROLE_STATEMENT, UPSERT_USER_DETAILS_STATEMENT, UPDATE_USER_BASIC_BY_ID } from "../mysql/mutations";
+import {
+    INSERT_USER_STATEMENT,
+    UPSERT_USER_DETAILS_STATEMENT,
+    UPDATE_USER_ACCESS_BY_ID,
+    UPDATE_USER_BASIC_BY_ID,
+} from "../mysql/mutations";
 import bcrypt from "bcrypt";
 import { generateJWTToken, saveRefreshToken } from "../token/jwt-token-manager";
 import { encryptData } from "../encryption";
@@ -54,6 +59,23 @@ const setCookies = (
     return; // Explicit return (function completes successfully)
 }
 
+const parsePermissions = (permissions: unknown): string[] => {
+    if (Array.isArray(permissions)) {
+        return permissions.filter((item): item is string => typeof item === "string");
+    }
+    if (typeof permissions === "string") {
+        try {
+            const parsed = JSON.parse(permissions);
+            if (Array.isArray(parsed)) {
+                return parsed.filter((item): item is string => typeof item === "string");
+            }
+        } catch {
+            return [];
+        }
+    }
+    return [];
+};
+
 /**
  * Generates and sets authentication tokens for a user session
  * @param id - User's unique identifier from database
@@ -61,18 +83,24 @@ const setCookies = (
  * @param res - Express response object to set cookies on
  * @param role - User's role ('user' | 'admin')
  */
-const setAuthTokens = async (id: string, email: string, res: Response, role: string = 'user') => {
+const setAuthTokens = async (
+    id: string,
+    email: string,
+    res: Response,
+    role: string = 'user',
+    permissions: string[] = []
+) => {
     try {
         console.log("=== SETTING AUTH TOKENS - START ===");
         console.log("User ID:", id);
         console.log("User Email:", email);
 
         // Generate access token (short-lived, used for API requests)
-        const accessToken = generateJWTToken(id, email, "access", role);
+        const accessToken = generateJWTToken(id, email, "access", role, permissions);
         console.log("✅ Access token generated");
         
         // Generate refresh token (long-lived, used to get new access tokens)
-        const refreshToken = generateJWTToken(id, email, "refresh", role);
+        const refreshToken = generateJWTToken(id, email, "refresh", role, permissions);
         console.log("✅ Refresh token generated");
 
         // Encrypt the refresh token for security before storing
@@ -121,6 +149,8 @@ const getUser = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "User not found" });
         }
 
+        users[0].permissions = parsePermissions(users[0].permissions);
+
         // Also fetch user_details for this user (same behavior as getUserDetails)
         const [detailRows] = await conn.query("SELECT * FROM user_details WHERE user_id = ?", [id]);
         let details: any = null;
@@ -161,6 +191,8 @@ const getUserById = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "User not found" });
         }
 
+        users[0].permissions = parsePermissions(users[0].permissions);
+
         return res.status(200).json({ message: "User Retrieved", user: users[0] });
     } catch (error) {
         console.log("Error occured", error);
@@ -185,6 +217,7 @@ const getUserByUsername = async (req: Request, res: Response) => {
         }
 
         const user = users[0];
+        user.permissions = parsePermissions(user.permissions);
 
         // Also fetch user_details for this user
         const [detailRows] = await conn.query("SELECT * FROM user_details WHERE user_id = ?", [user.id]);
@@ -231,10 +264,14 @@ const getUserByEmail = async (email: string) => {
 const createUser = async (req: Request, res: Response) => {
     let conn;
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, role } = req.body;
 
         if (!username || !email || !password) {
             return res.status(422).json({ message: "Username, Email and Password are required" });
+        }
+
+        if (role && role !== "user") {
+            return res.status(403).json({ message: "Sign up only supports standard user accounts" });
         }
 
         const users = await getUserByEmail(email);
@@ -244,51 +281,21 @@ const createUser = async (req: Request, res: Response) => {
         }
 
         const password_hash = await bcrypt.hash(password, 10);
+        const userRole = "admin";
+        const permissionsJson = JSON.stringify([]);
 
         conn = await pool.getConnection();
-        const [result] = await conn.query(INSERT_USER_STATEMENT, [username, email, password_hash]);
+        const [result] = await conn.query(INSERT_USER_STATEMENT, [username, email, password_hash, userRole, permissionsJson]);
         const newUserId = (result as any).insertId;
-        await setAuthTokens(newUserId, email, res, 'user');
-
-        return res.status(201).json({ message: "User Created", result });
-    } catch (error) {
-        console.log("Error occured", error);
-        return res.status(500).json({ message: "Unexprected Error occurred, Try again later" });
-    } finally {
-        if (conn) conn.release();
-    }
-}
-
-const createAdminUser = async (req: Request, res: Response) => {
-    let conn;
-    try {
-        const { username, email, password } = req.body;
-
-        if (!username || !email || !password) {
-            return res.status(422).json({ message: "Username, Email and Password are required" });
-        }
-
-        const users = await getUserByEmail(email);
-
-        if (users && users.length > 0) {
-            return res.status(409).json({ message: `User with this email already exists, userId: ${users[0].id}` });
-        }
-
-        const password_hash = await bcrypt.hash(password, 10);
-
-        conn = await pool.getConnection();
-        const [result] = await conn.query(INSERT_USER_WITH_ROLE_STATEMENT, [username, email, password_hash, 'admin']);
-        const newUserId = (result as any).insertId;
-
-        await setAuthTokens(newUserId, email, res, 'admin');
+        await setAuthTokens(newUserId, email, res, userRole, []);
 
         return res.status(201).json({
-            message: "Admin user created",
-            user: { id: newUserId, username, email, role: 'admin' }
+            message: "User Created",
+            user: { id: newUserId, username, email, role: userRole, permissions: [] }
         });
     } catch (error) {
         console.log("Error occured", error);
-        return res.status(500).json({ message: "Unexpected Error occurred, Try again later" });
+        return res.status(500).json({ message: "Unexprected Error occurred, Try again later" });
     } finally {
         if (conn) conn.release();
     }
@@ -309,6 +316,7 @@ const loginUser = async (req: Request, res: Response) => {
 
         const user = users[0];
         const passwordHash = user.password_hash;
+        const userPermissions = parsePermissions(user.permissions);
 
         if (!passwordHash) {
             return res.status(500).json({ message: "User data corrupted" });
@@ -321,9 +329,17 @@ const loginUser = async (req: Request, res: Response) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        await setAuthTokens(user.id, user.email, res, user.role || 'user');
+        await setAuthTokens(user.id, user.email, res, user.role || 'user', userPermissions);
 
-        return res.status(200).json({ message: "Login successful", user: { username: user.username, email: user.email, role: user.role || 'user' } });
+        return res.status(200).json({
+            message: "Login successful",
+            user: {
+                username: user.username,
+                email: user.email,
+                role: user.role || 'user',
+                permissions: userPermissions,
+            }
+        });
     } catch (error) {
         console.log("Login failed by Error: ", error);
         return res.status(500).json({ message: "Login failed, Please check again your Password" });
@@ -391,7 +407,52 @@ const logoutUser = async (_req: Request, res: Response) => {
     }
 }
 
-export { getUser, createUser, createAdminUser, loginUser, setCookies, getUserById, getUserByUsername, getUserDetails };
+export const updateUserAccess = async (req: Request, res: Response) => {
+    let conn;
+    try {
+        const targetUserId = req.params.id;
+        const { role = "user", permissions = [] } = req.body || {};
+
+        if (!targetUserId || isNaN(Number(targetUserId))) {
+            return res.status(400).json({ message: "Valid target user id is required" });
+        }
+
+        if (role !== "user" && role !== "admin") {
+            return res.status(422).json({ message: "Role must be either 'user' or 'admin'" });
+        }
+
+        if (!Array.isArray(permissions) || permissions.some((item) => typeof item !== "string")) {
+            return res.status(422).json({ message: "Permissions must be an array of strings" });
+        }
+
+        conn = await pool.getConnection();
+
+        const [result] = await conn.query(UPDATE_USER_ACCESS_BY_ID, [
+            role,
+            JSON.stringify(permissions),
+            targetUserId,
+        ]);
+
+        if ((result as any).affectedRows === 0) {
+            return res.status(404).json({ message: "Target user not found" });
+        }
+
+        return res.status(200).json({
+            message: "User access updated",
+            access: {
+                role,
+                permissions,
+            },
+        });
+    } catch (error) {
+        console.log("Error updating user access:", error);
+        return res.status(500).json({ message: "Unexpected error updating access" });
+    } finally {
+        if (conn) conn.release();
+    }
+};
+
+export { getUser, createUser, loginUser, setCookies, getUserById, getUserByUsername, getUserDetails };
 export { logoutUser };
  
 // Update or create user details (profile info)

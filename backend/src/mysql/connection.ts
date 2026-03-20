@@ -120,6 +120,21 @@ const connectToDatabase = async () => {
                 console.warn("Could not add role column to users:", err);
             }
         }
+
+        // Ensure permissions column exists for granular RBAC
+        const [permissionRows] = await pool.query(
+            `SELECT COUNT(*) as cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'permissions'`,
+            [dbName]
+        );
+        const permissionsExist = Array.isArray(permissionRows) && (permissionRows as any)[0]?.cnt > 0;
+        if (!permissionsExist) {
+            try {
+                await pool.execute(`ALTER TABLE users ADD COLUMN permissions JSON NULL`);
+                console.log("Added permissions column to users table");
+            } catch (err) {
+                console.warn("Could not add permissions column to users:", err);
+            }
+        }
     } catch (error) {
         console.error("Database connection failed:", error);
         throw error;

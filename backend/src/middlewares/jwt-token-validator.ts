@@ -1,6 +1,14 @@
 import { Request, Response, NextFunction } from "express"
 import { validateRefreshToken } from "../utils/helpers";
 
+const parseTokenPart = (part: string, key: string): string | null => {
+    const prefix = `${key}=`;
+    if (!part || !part.startsWith(prefix)) {
+        return null;
+    }
+    return part.slice(prefix.length);
+};
+
 export const validateAuthTokens = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // console.log("Authorization header:", req.headers.authorization);
@@ -9,14 +17,15 @@ export const validateAuthTokens = async (req: Request, res: Response, next: Next
             return res.status(400).json({ message: "Authorization header missing" });
         }
 
-        const [_, refresh] = req!.headers!.authorization!.split(", ");
+        const parts = req!.headers!.authorization!.split(",").map((p) => p.trim());
+        const refresh = parts.find((part) => part.startsWith("refresh_token="));
         console.log("Refresh token from header:", refresh);
         
         if (!refresh) {
             return res.status(400).json({ message: "Refresh token missing from header" });
         }
 
-        const refreshToken = refresh.split("=")[1];
+        const refreshToken = parseTokenPart(refresh, "refresh_token");
         console.log("Extracted refresh token:", refreshToken);
 
         if (!refreshToken) {

@@ -8,11 +8,37 @@ import { config } from "dotenv";
 
 config();
 
-const key = Buffer.from(process.env.ENCRYPTION_KEY!, "base64");
-const iv = Buffer.from(process.env.ENCRYPTION_IV || "1234567890123456", "utf-8"); // Fixed IV for consistent encryption/decryption
 const algorithm = "aes-256-cbc";
 
+const getCryptoMaterial = () => {
+    const encryptionKey = process.env.ENCRYPTION_KEY;
+    const encryptionIv = process.env.ENCRYPTION_IV;
+
+    if (!encryptionKey) {
+        throw new Error("Missing ENCRYPTION_KEY environment variable");
+    }
+
+    if (!encryptionIv) {
+        throw new Error("Missing ENCRYPTION_IV environment variable");
+    }
+
+    const key = Buffer.from(encryptionKey, "base64");
+    if (key.length !== 32) {
+        throw new Error("Invalid ENCRYPTION_KEY. Expected 32-byte key encoded in base64");
+    }
+
+    if (encryptionIv.length !== 16) {
+        throw new Error("Invalid ENCRYPTION_IV. Expected exactly 16 characters");
+    }
+
+    const iv = Buffer.from(encryptionIv, "utf-8");
+
+    return { key, iv };
+};
+
 export const encryptData = (data: string) => {
+    const { key, iv } = getCryptoMaterial();
+
     // convert plaintext to ciphertext
     const cipher = crypto.createCipheriv(algorithm, key, iv);
 
@@ -23,6 +49,8 @@ export const encryptData = (data: string) => {
 }
 
 export const decryptData = (encrypted: string) => {
+    const { key, iv } = getCryptoMaterial();
+
     // convert ciphertext to plaintext
     const decipher = crypto.createDecipheriv(algorithm, key, iv);
 
