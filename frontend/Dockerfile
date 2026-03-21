@@ -4,7 +4,7 @@
 # ============================================
 
 # Base stage with Node.js LTS
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 LABEL maintainer="Auth MERN Frontend"
 LABEL description="Production image for Auth MERN Next.js Frontend"
 

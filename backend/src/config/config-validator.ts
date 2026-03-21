@@ -94,6 +94,21 @@ const requiredEnvVars: RequiredEnvVar[] = [
     description: 'Redis port',
     validator: (val) => !isNaN(Number(val)) && Number(val) > 0,
     critical: true
+  },
+  {
+    name: 'CLOUDINARY_CLOUD_NAME',
+    description: 'Cloudinary cloud name',
+    critical: true
+  },
+  {
+    name: 'CLOUDINARY_API_KEY',
+    description: 'Cloudinary API key',
+    critical: true
+  },
+  {
+    name: 'CLOUDINARY_API_SECRET',
+    description: 'Cloudinary API secret',
+    critical: true
   }
 ];
 

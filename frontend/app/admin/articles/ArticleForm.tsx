@@ -110,7 +110,7 @@ export default function ArticleForm({ initialData, mode }: ArticleFormProps) {
     : null
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto text-gray-500">
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error}
@@ -127,43 +127,45 @@ export default function ArticleForm({ initialData, mode }: ArticleFormProps) {
         <div className="lg:col-span-2 space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
               Title <span className="text-red-500">*</span>
             </label>
             <input
+              id="title"
+              name="title"
               type="text"
               required
               value={form.title}
               onChange={(e) => update('title', e.target.value)}
               placeholder="Enter article title…"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-500/50"
             />
           </div>
 
           {/* Excerpt */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Excerpt</label>
-            <textarea
+            <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 mb-1">Excerpt</label>
+            <textarea id="excerpt" name="excerpt"
               value={form.excerpt}
               onChange={(e) => update('excerpt', e.target.value)}
               placeholder="Short summary shown in article cards…"
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder:text-gray-500/50"
             />
           </div>
 
           {/* Content */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
               Content <span className="text-red-500">*</span>
             </label>
-            <textarea
+            <textarea id="content" name="content"
               required
               value={form.content}
               onChange={(e) => update('content', e.target.value)}
               placeholder="Write your article content here…"
               rows={18}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+              className="placeholder:text-gray-500/50 w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y placeholder:text-gray-500/50"
             />
             <p className="mt-1 text-xs text-gray-400">Supports plain text. HTML tags are rendered as-is.</p>
           </div>
@@ -176,8 +178,8 @@ export default function ArticleForm({ initialData, mode }: ArticleFormProps) {
             <h3 className="text-sm font-semibold text-gray-700">Publish</h3>
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Status</label>
-              <select
+              <label htmlFor="status" className="block text-xs text-gray-500 mb-1">Status</label>
+              <select id="status" name="status"
                 value={form.status}
                 onChange={(e) => update('status', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -238,8 +240,8 @@ export default function ArticleForm({ initialData, mode }: ArticleFormProps) {
             </div>
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Or paste image URL</label>
-              <input
+              <label htmlFor="thumbnail_url" className="block text-xs text-gray-500 mb-1">Or paste image URL</label>
+              <input id="thumbnail_url" name="thumbnail_url"
                 type="url"
                 value={form.thumbnail_url}
                 onChange={(e) => update('thumbnail_url', e.target.value)}
@@ -254,19 +256,21 @@ export default function ArticleForm({ initialData, mode }: ArticleFormProps) {
             <h3 className="text-sm font-semibold text-gray-700">Organisation</h3>
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Category</label>
-              <input
-                type="text"
+              <label htmlFor="category" className="block text-xs text-gray-500 mb-1">Category</label>
+              <select id="category" name="category"
                 value={form.category}
                 onChange={(e) => update('category', e.target.value)}
-                placeholder="e.g. Product Update"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value="">Select category</option>
+                <option value="EVENT">EVENT</option>
+                <option value="EDUCATION">EDUCATION</option>
+              </select>
             </div>
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Tags (comma-separated)</label>
-              <input
+              <label htmlFor="tags" className="block text-xs text-gray-500 mb-1">Tags (comma-separated)</label>
+              <input id="tags" name="tags"
                 type="text"
                 value={form.tags}
                 onChange={(e) => update('tags', e.target.value)}

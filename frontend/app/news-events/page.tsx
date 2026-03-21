@@ -17,6 +17,8 @@ interface Article {
   author_username: string;
 }
 
+type SearchParamValue = string | string[] | undefined;
+
 async function getPublishedArticles(): Promise<Article[]> {
   try {
     const res = await axiosInstance.get('/articles', { params: { limit: 50 } });
@@ -99,15 +101,135 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
-export default async function NewsEventsPage() {
-  const articles = await getPublishedArticles();
+function getPageNumber(value: SearchParamValue, totalPages: number) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Number.parseInt(raw ?? '1', 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.min(parsed, totalPages);
+}
 
-  const eventArticles = articles.filter(
-    (a) => a.category?.toLowerCase() === 'Events',
+function paginateArticles(articles: Article[], page: number, perPage: number) {
+  const start = (page - 1) * perPage;
+  return articles.slice(start, start + perPage);
+}
+
+function PaginationTabs({
+  totalPages,
+  currentPage,
+  buildHref,
+  accentFrom = 'from-blue-500',
+  accentTo = 'to-cyan-400',
+}: {
+  totalPages: number;
+  currentPage: number;
+  buildHref: (page: number) => string;
+  accentFrom?: string;
+  accentTo?: string;
+}) {
+  if (totalPages <= 1) return null;
+
+  const hasPrev = currentPage > 1;
+  const hasNext = currentPage < totalPages;
+
+  const chevronLeft = (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+    </svg>
   );
-  const educationArticles = articles.filter(
-    (a) => a.category?.toLowerCase() === 'Education',
+  const chevronRight = (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
   );
+
+  return (
+    <div className="mt-12 flex items-center justify-center">
+      <nav className="inline-flex items-center gap-1.5 rounded-full bg-gray-100/80 backdrop-blur-sm border border-gray-200/60 p-1.5 shadow-sm">
+        {/* Prev arrow */}
+        {hasPrev ? (
+          <Link
+            href={buildHref(currentPage - 1)}
+            aria-label="Previous page"
+            className="flex items-center justify-center w-9 h-9 rounded-full text-gray-500 hover:text-gray-900 hover:bg-white transition-all duration-200"
+          >
+            {chevronLeft}
+          </Link>
+        ) : (
+          <span className="flex items-center justify-center w-9 h-9 rounded-full text-gray-300 cursor-not-allowed">
+            {chevronLeft}
+          </span>
+        )}
+
+        {/* Page numbers */}
+        {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((page) => {
+          const active = page === currentPage;
+          return (
+            <Link
+              key={page}
+              href={buildHref(page)}
+              aria-current={active ? 'page' : undefined}
+              className={`relative flex items-center justify-center min-w-9 h-9 px-3 rounded-full text-sm font-semibold transition-all duration-200 ${
+                active
+                  ? `bg-gradient-to-r ${accentFrom} ${accentTo} text-white shadow-md shadow-blue-500/25`
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white'
+              }`}
+            >
+              {page}
+            </Link>
+          );
+        })}
+
+        {/* Next arrow */}
+        {hasNext ? (
+          <Link
+            href={buildHref(currentPage + 1)}
+            aria-label="Next page"
+            className="flex items-center justify-center w-9 h-9 rounded-full text-gray-500 hover:text-gray-900 hover:bg-white transition-all duration-200"
+          >
+            {chevronRight}
+          </Link>
+        ) : (
+          <span className="flex items-center justify-center w-9 h-9 rounded-full text-gray-300 cursor-not-allowed">
+            {chevronRight}
+          </span>
+        )}
+      </nav>
+    </div>
+  );
+}
+
+export default async function NewsEventsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ eventPage?: SearchParamValue; educationPage?: SearchParamValue }>;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const articles = await getPublishedArticles();
+  const perCategoryPageSize = 6;
+
+  const normalizeCategory = (category: string | null) => category?.trim().toLowerCase();
+
+  const allEventArticles = articles.filter(
+    (a) => normalizeCategory(a.category) === 'event',
+  );
+  const allEducationArticles = articles.filter(
+    (a) => normalizeCategory(a.category) === 'education',
+  );
+
+  const eventTotalPages = Math.max(1, Math.ceil(allEventArticles.length / perCategoryPageSize));
+  const educationTotalPages = Math.max(1, Math.ceil(allEducationArticles.length / perCategoryPageSize));
+
+  const eventCurrentPage = getPageNumber(resolvedSearchParams.eventPage, eventTotalPages);
+  const educationCurrentPage = getPageNumber(resolvedSearchParams.educationPage, educationTotalPages);
+
+  const eventArticles = paginateArticles(allEventArticles, eventCurrentPage, perCategoryPageSize);
+  const educationArticles = paginateArticles(allEducationArticles, educationCurrentPage, perCategoryPageSize);
+
+  const buildEventPageHref = (page: number) =>
+    `/news-events?eventPage=${page}&educationPage=${educationCurrentPage}#sukientuaqtech`;
+
+  const buildEducationPageHref = (page: number) =>
+    `/news-events?eventPage=${eventCurrentPage}&educationPage=${page}#thongtinchuyennganh`;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -137,7 +259,7 @@ export default async function NewsEventsPage() {
       </section>
 
       {/* ── Events Section ──────────────────────────────── */}
-      <section className="max-w-[1720px] mx-auto px-6 py-20">
+      <section id="sukientuaqtech" className="max-w-[1720px] mx-auto px-6 py-20">
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
@@ -158,11 +280,20 @@ export default async function NewsEventsPage() {
         {eventArticles.length === 0 ? (
           <EmptyState label="Event" />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {eventArticles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {eventArticles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
+            </div>
+            <PaginationTabs
+              totalPages={eventTotalPages}
+              currentPage={eventCurrentPage}
+              buildHref={buildEventPageHref}
+              accentFrom="from-violet-500"
+              accentTo="to-purple-400"
+            />
+          </>
         )}
       </section>
 
@@ -172,7 +303,7 @@ export default async function NewsEventsPage() {
       </div>
 
       {/* ── Education Section ───────────────────────────── */}
-      <section className="max-w-[1720px] mx-auto px-6 py-20">
+      <section id="thongtinchuyennganh" className="max-w-[1720px] mx-auto px-6 py-20">
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
@@ -193,11 +324,20 @@ export default async function NewsEventsPage() {
         {educationArticles.length === 0 ? (
           <EmptyState label="Education" />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {educationArticles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {educationArticles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
+            </div>
+            <PaginationTabs
+              totalPages={educationTotalPages}
+              currentPage={educationCurrentPage}
+              buildHref={buildEducationPageHref}
+              accentFrom="from-emerald-500"
+              accentTo="to-teal-400"
+            />
+          </>
         )}
       </section>
     </main>

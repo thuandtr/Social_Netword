@@ -103,13 +103,18 @@ export const getCurrentUserOrRedirect = async (
   try {
     const res = await axios.get('/user/me', {
       headers: await getAuthHeaders(),
+      timeout: 8000,
     })
 
     const data = (await res.data) as CurrentUserResponse
     // console.log('getCurrentUserOrRedirect data:', data);
     return data
   } catch (error) {
-    console.error('Error fetching current user:', error)
+    if ((error as any)?.code === 'ECONNABORTED') {
+      console.error('Timeout fetching current user (/user/me).')
+    } else {
+      console.error('Error fetching current user:', error)
+    }
     redirect(loginPath)
   }
 }
@@ -119,10 +124,14 @@ export const getCurrentUser = async (): Promise<CurrentUserResponse | null> => {
   try {
     const res = await axios.get('/user/me', {
       headers: await getAuthHeaders(),
+      timeout: 8000,
     })
 
     return (await res.data) as CurrentUserResponse
   } catch (error) {
+    if ((error as any)?.code === 'ECONNABORTED') {
+      console.error('Timeout fetching current user (/user/me).')
+    }
     return null
   }
 }

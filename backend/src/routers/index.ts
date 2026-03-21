@@ -4,6 +4,7 @@ import validationRouter from "./validation";
 import activityRouter from "./activity";
 import articleRouter from "./article";
 import achievementRouter from "./achievement";
+import uploadRouter from "./upload";
 
 const appRouter = Router();
 // /api/v1/auth
@@ -13,5 +14,6 @@ appRouter.use("/validate", validationRouter);
 appRouter.use("/activities", activityRouter);
 appRouter.use("/articles", articleRouter);
 appRouter.use("/achievements", achievementRouter);
+appRouter.use("/uploads", uploadRouter);
 
 export default appRouter;

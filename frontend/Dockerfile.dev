@@ -3,7 +3,7 @@
 # Optimized for Next.js hot reload and debugging
 # ============================================
 
-FROM node:18-alpine AS development
+FROM node:20-alpine AS development
 
 WORKDIR /app
 

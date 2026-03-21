@@ -37,28 +37,28 @@ async function getCompanyAchievements(): Promise<Achievement[]> {
       id: 1,
       title: 'Giải thưởng Công nghệ Thông tin TP.HCM 2017',
       subtitle: 'TP.HCM ICT Awards',
-      image_url: '/uploads/achievements/achievement-ict-award.jpg',
+      image_url: '/reward1.png',
       display_order: 1,
     },
     {
       id: 2,
       title: 'Bằng khen UBND TP.HCM',
       subtitle: 'Sản phẩm công nghệ tiêu biểu',
-      image_url: '/uploads/achievements/achievement-certificate.png',
+      image_url: '/reward2.png',
       display_order: 2,
     },
     {
       id: 3,
       title: 'Tư duy Sáng tạo và Chuyển đổi số',
       subtitle: 'Liên hiệp các hội KHKT Việt Nam',
-      image_url: '/uploads/achievements/achievement-trophy-gold.png',
+      image_url: '/reward3.png',
       display_order: 3,
     },
   ]
 
   try {
     const res = await axiosInstance.get('/achievements')
-    return res.data.achievements ?? fallback
+    return fallback
   } catch {
     return fallback
   }
@@ -107,64 +107,68 @@ export default async function HomePage() {
         </p>
 
         {/* Achievement showcase */}
-        <div className="mt-14 rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-5 md:p-10 text-left shadow-[0_24px_80px_-30px_rgba(8,47,73,0.8)]">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10 items-start">
+        <div className="mt-14 rounded-[2rem] border border-amber-200/80 bg-gradient-to-br from-white via-amber-50/40 to-yellow-50 p-5 md:p-10 text-left shadow-[0_22px_50px_-28px_rgba(161,98,7,0.45)]">
+          <div>
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
-                Thành tựu nổi bật
-              </div>
-              <h2 className="mt-5 text-3xl md:text-4xl font-black tracking-tight text-white leading-tight">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-tight">
                 TƯ DUY SÁNG TẠO
               </h2>
-              <p className="mt-3 text-cyan-100/80 text-base md:text-lg leading-relaxed">
+              <p className="mt-3 text-slate-600 text-base md:text-lg leading-relaxed">
                 Chìa khóa cho giải pháp vượt trội trong thời đại số
               </p>
 
               <div className="mt-8 space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-cyan-50 backdrop-blur-sm">
+                <div className="rounded-2xl border border-amber-200/60 bg-white px-4 py-3 text-slate-700 shadow-sm">
                   <span className="mr-2" aria-hidden>🚀</span>
                   Giải pháp công nghệ tiên tiến cho giáo dục hiện đại
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-cyan-50 backdrop-blur-sm">
+                <div className="rounded-2xl border border-amber-200/60 bg-white px-4 py-3 text-slate-700 shadow-sm">
                   <span className="mr-2" aria-hidden>🤝</span>
                   Đồng hành cùng giáo dục trong kỷ nguyên số
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-cyan-50 backdrop-blur-sm">
+                <div className="rounded-2xl border border-amber-200/60 bg-white px-4 py-3 text-slate-700 shadow-sm">
                   <span className="mr-2" aria-hidden>✨</span>
                   Chuyển đổi số giáo dục - Kiến tạo tương lai
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5">
-              {achievements.map((achievement, idx) => (
-                <div
-                  key={achievement.id}
-                  className="group relative overflow-hidden rounded-2xl border border-cyan-200/15 bg-white/[0.03] p-4 backdrop-blur-md"
-                >
-                  <div className="pointer-events-none absolute -top-14 -right-10 h-28 w-28 rounded-full bg-cyan-400/20 blur-2xl" />
-                  <div className="relative flex items-start gap-4">
-                    <img
-                      src={resolveImageUrl(achievement.image_url)}
-                      alt={achievement.title}
-                      className="h-24 w-24 md:h-28 md:w-28 rounded-xl object-cover ring-1 ring-cyan-200/20 transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div>
-                      <div className="inline-flex items-center rounded-full bg-cyan-400/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-cyan-200">
+            <div className="mt-10">
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-100 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-amber-800">
+                Thành tựu nổi bật
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {achievements.map((achievement, idx) => (
+                  <div
+                    key={achievement.id}
+                    className="group relative overflow-hidden rounded-2xl border border-amber-200/80 bg-white p-4 shadow-sm transition-shadow duration-300 hover:shadow-lg"
+                  >
+                    <div className="pointer-events-none absolute -top-14 -right-10 h-28 w-28 rounded-full bg-amber-300/30 blur-2xl" />
+                    <div className="relative rounded-xl border border-amber-200/70 bg-gradient-to-b from-amber-50/60 to-white p-3">
+                      <img
+                        src={resolveImageUrl(achievement.image_url)}
+                        alt={achievement.title}
+                        className="h-[320px] w-full md:h-[380px] object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    </div>
+
+                    <div className="relative mt-4">
+                      <div className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-amber-800">
                         #{idx + 1} Achievement
                       </div>
-                      <h3 className="mt-2 text-sm md:text-base font-bold text-white leading-snug">
+                      <h3 className="mt-2 text-sm md:text-base font-bold text-slate-900 leading-snug">
                         {achievement.title}
                       </h3>
                       {achievement.subtitle && (
-                        <p className="mt-1 text-xs md:text-sm text-cyan-100/70">
+                        <p className="mt-1 text-xs md:text-sm text-slate-600">
                           {achievement.subtitle}
                         </p>
                       )}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -274,8 +278,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Why Choose AQTech */}
+      
       <section className="relative overflow-hidden bg-gradient-to-br from-[#0a1628] via-[#0d1f3c] to-[#0a2a5e] py-24">
         {/* Background decorations */}
         <div className="absolute inset-0 opacity-20">
@@ -294,7 +297,7 @@ export default async function HomePage() {
         </svg>
 
         <div className="relative z-10 max-w-[1720px] mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.35fr] gap-16 items-center">
             {/* Left - Text content */}
             <div>
               <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-6">
@@ -355,64 +358,237 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* Right - Tech illustration */}
+            {/* Right - right-banner-ava illustration */}
             <div className="hidden lg:flex items-center justify-center">
-              <div className="relative w-[520px] h-[520px]">
-                {/* Outer rotating ring */}
-                <div className="absolute inset-0 rounded-full border border-dashed border-white/10 animate-[spin_40s_linear_infinite]" />
-                <div className="absolute inset-6 rounded-full border border-white/[0.06]" />
-                <div className="absolute inset-12 rounded-full border border-dashed border-cyan-400/10 animate-[spin_30s_linear_infinite_reverse]" />
+              <style>{`
+                .right-banner-ava {
+                  position: relative;
+                  width: min(100%, 640px);
+                  aspect-ratio: 1 / 1;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  overflow: hidden;
+                  margin: 0 auto;
+                }
+                .right-banner-ava > img.bg-img {
+                  width: 100%;
+                  height: 100%;
+                  object-fit: contain;
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  z-index: 1;
+                }
+                .anitarion-ava {
+                  position: absolute;
+                  top: 40%;
+                  left: 50%;
+                  z-index: 5;
+                  animation: logoFloat 4s ease-in-out infinite;
+                  animation-fill-mode: both;
+                }
+                .anitarion-ava img {
+                  width: 220px;
+                  aspect-ratio: 1 / 1;
+                  object-fit: contain;
+                  animation: logoGlow 2s ease-in-out infinite alternate;
+                }
+                .data-transfer-path {
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  z-index: 3;
+                }
+                .data-transfer-dot {
+                  position: absolute;
+                  width: 6px;
+                  height: 6px;
+                  background: #4285f4;
+                  border-radius: 50%;
+                  box-shadow: 0 0 10px #4285f4, 0 0 20px #4285f4, 0 0 30px #4285f4;
+                }
+                .dot-1 { top: 20%; left: 15%; animation: dataFlow1 3s linear infinite; }
+                .dot-2 { top: 25%; right: 18%; animation: dataFlow2 3s linear infinite 0.75s; }
+                .dot-3 { bottom: 22%; left: 20%; animation: dataFlow3 3s linear infinite 1.5s; }
+                .dot-4 { bottom: 18%; right: 15%; animation: dataFlow4 3s linear infinite 2.25s; }
 
-                {/* Center hub */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-400/30 backdrop-blur-xl flex items-center justify-center shadow-[0_0_60px_rgba(34,211,238,0.15)]">
-                  <div className="text-cyan-400 font-extrabold text-xl tracking-widest">AQ</div>
+                .connection-line {
+                  position: absolute;
+                  height: 2px;
+                  background: linear-gradient(90deg, transparent, #4285f4, transparent);
+                  z-index: 2;
+                  opacity: 0.6;
+                }
+                .line-1 { top: 40%; left: 25%; width: 25%; transform: rotate(31deg); animation: lineGlow 2s ease-in-out infinite alternate; }
+                .line-2 { top: 40%; right: 20%; width: 22%; transform: rotate(-30deg); animation: lineGlow 2s ease-in-out infinite alternate 0.5s; }
+                .line-3 { bottom: 34%; left: 25%; width: 20%; transform: rotate(-30deg); animation: lineGlow 2s ease-in-out infinite alternate 1s; }
+                .line-4 { bottom: 34%; right: 20%; width: 24%; transform: rotate(30deg); animation: lineGlow 2s ease-in-out infinite alternate 1.5s; }
+                .line-5 { bottom: 34%; right: 36.5%; width: 24%; transform: rotate(90deg); animation: lineGlow 2s ease-in-out infinite alternate 2s; }
+                .line-6 { top: 34%; right: 36.5%; width: 24%; transform: rotate(90deg); animation: lineGlow 2s ease-in-out infinite alternate 2.5s; }
+
+                .rba-particle {
+                  position: absolute;
+                  width: 3px;
+                  height: 3px;
+                  background: rgba(66, 133, 244, 0.8);
+                  border-radius: 50%;
+                  z-index: 4;
+                }
+                .particle-1 { top: 30%; left: 25%; animation: particleMove1 4s linear infinite; }
+                .particle-2 { top: 35%; right: 30%; animation: particleMove2 3.5s linear infinite 0.5s; }
+                .particle-3 { bottom: 35%; left: 30%; animation: particleMove3 4.2s linear infinite 1s; }
+                .particle-4 { bottom: 30%; right: 25%; animation: particleMove4 3.8s linear infinite 1.5s; }
+                .particle-5 { bottom: 28%; right: 48%; animation: particleMove5 4s linear infinite 1.5s; }
+                .particle-6 { top: 10%; right: 48%; animation: particleMove6 4s linear infinite 1.5s; }
+
+                .central-hub {
+                  position: absolute;
+                  top: 50%;
+                  left: 50%;
+                  transform: translate(-50%, -50%);
+                  width: 160px;
+                  height: 160px;
+                  border: 2px solid rgba(66, 133, 244, 0.3);
+                  border-radius: 50%;
+                  z-index: 2;
+                  animation: hubRotate 20s linear infinite;
+                }
+                .central-hub::before {
+                  content: '';
+                  position: absolute;
+                  top: -5px; left: -5px; right: -5px; bottom: -5px;
+                  border: 1px solid rgba(66, 133, 244, 0.2);
+                  border-radius: 50%;
+                  animation: hubRotate 15s linear infinite reverse;
+                }
+
+                @keyframes logoFloat {
+                  0%, 100% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
+                  25%  { transform: translate(-50%, -50%) translateY(-8px) rotate(1deg); }
+                  50%  { transform: translate(-50%, -50%) translateY(-5px) rotate(0deg); }
+                  75%  { transform: translate(-50%, -50%) translateY(-10px) rotate(-1deg); }
+                }
+                @keyframes logoGlow {
+                  0%   { filter: drop-shadow(0 0 20px rgba(66,133,244,0.6)); }
+                  100% { filter: drop-shadow(0 0 30px rgba(66,133,244,0.9)); }
+                }
+                @keyframes dataFlow1 {
+                  0%   { transform: translate(0,0) scale(0); opacity: 0; }
+                  20%  { transform: translate(50px,20px) scale(1); opacity: 1; }
+                  80%  { transform: translate(150px,60px) scale(1); opacity: 1; }
+                  100% { transform: translate(200px,80px) scale(0); opacity: 0; }
+                }
+                @keyframes dataFlow2 {
+                  0%   { transform: translate(0,0) scale(0); opacity: 0; }
+                  20%  { transform: translate(-50px,20px) scale(1); opacity: 1; }
+                  80%  { transform: translate(-150px,60px) scale(1); opacity: 1; }
+                  100% { transform: translate(-200px,80px) scale(0); opacity: 0; }
+                }
+                @keyframes dataFlow3 {
+                  0%   { transform: translate(0,0) scale(0); opacity: 0; }
+                  20%  { transform: translate(40px,-30px) scale(1); opacity: 1; }
+                  80%  { transform: translate(140px,-90px) scale(1); opacity: 1; }
+                  100% { transform: translate(180px,-120px) scale(0); opacity: 0; }
+                }
+                @keyframes dataFlow4 {
+                  0%   { transform: translate(0,0) scale(0); opacity: 0; }
+                  20%  { transform: translate(-45px,-25px) scale(1); opacity: 1; }
+                  80%  { transform: translate(-145px,-75px) scale(1); opacity: 1; }
+                  100% { transform: translate(-190px,-100px) scale(0); opacity: 0; }
+                }
+                @keyframes lineGlow {
+                  0%   { opacity: 0.3; box-shadow: 0 0 5px #4285f4; }
+                  100% { opacity: 0.8; box-shadow: 0 0 15px #4285f4, 0 0 25px #4285f4; }
+                }
+                @keyframes particleMove1 {
+                  0%   { transform: translate(0,0); opacity: 0; }
+                  10%  { opacity: 1; }
+                  90%  { opacity: 1; }
+                  100% { transform: translate(200px,100px); opacity: 0; }
+                }
+                @keyframes particleMove2 {
+                  0%   { transform: translate(0,0); opacity: 0; }
+                  10%  { opacity: 1; }
+                  90%  { opacity: 1; }
+                  100% { transform: translate(-180px,120px); opacity: 0; }
+                }
+                @keyframes particleMove3 {
+                  0%   { transform: translate(0,0); opacity: 0; }
+                  10%  { opacity: 1; }
+                  90%  { opacity: 1; }
+                  100% { transform: translate(160px,-140px); opacity: 0; }
+                }
+                @keyframes particleMove4 {
+                  0%   { transform: translate(0,0); opacity: 0; }
+                  10%  { opacity: 1; }
+                  90%  { opacity: 1; }
+                  100% { transform: translate(-170px,-110px); opacity: 0; }
+                }
+                @keyframes particleMove5 {
+                  0%   { transform: translate(0,0); opacity: 0; }
+                  10%  { opacity: 1; }
+                  90%  { opacity: 0.5; }
+                  100% { transform: translate(0,-400px); opacity: 0; }
+                }
+                @keyframes particleMove6 {
+                  0%   { transform: translate(0,0); opacity: 0; }
+                  10%  { opacity: 1; }
+                  90%  { opacity: 0.5; }
+                  100% { transform: translate(0,400px); opacity: 0; }
+                }
+                @keyframes hubRotate {
+                  0%   { transform: translate(-50%,-50%) rotate(0deg); }
+                  100% { transform: translate(-50%,-50%) rotate(360deg); }
+                }
+              `}</style>
+
+              <div className="right-banner-ava">
+                {/* Background system connection image */}
+                <img
+                  className="bg-img"
+                  decoding="async"
+                  alt="AMIS"
+                  src="https://aqtech.edu.vn/wp-content/uploads/2025/08/hinh-nen-cho-cai-nhay@2x.png"
+                />
+
+                {/* Connection lines */}
+                <div className="connection-line line-1"></div>
+                <div className="connection-line line-2"></div>
+                <div className="connection-line line-3"></div>
+                <div className="connection-line line-4"></div>
+                <div className="connection-line line-5"></div>
+                <div className="connection-line line-6"></div>
+
+                {/* Central hub circle */}
+                <div className="central-hub"></div>
+
+                {/* Company logo with animation */}
+                <div className="anitarion-ava">
+                  <img
+                    decoding="async"
+                    alt="AVA Logo"
+                    src="https://aqtech.edu.vn/wp-content/uploads/2025/08/cai-se-nhay-nhay@1.5x.png"
+                  />
                 </div>
 
-                {/* Orbiting nodes */}
-                <div className="absolute top-[8%] left-1/2 -translate-x-1/2 w-16 h-16 rounded-xl bg-white/[0.06] border border-white/10 backdrop-blur-sm flex items-center justify-center animate-[pulse_3s_ease-in-out_infinite]">
-                  <svg className="w-7 h-7 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.841m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                  </svg>
+                {/* Data transfer dots */}
+                <div className="data-transfer-path">
+                  <div className="data-transfer-dot dot-1"></div>
+                  <div className="data-transfer-dot dot-2"></div>
+                  <div className="data-transfer-dot dot-3"></div>
+                  <div className="data-transfer-dot dot-4"></div>
                 </div>
 
-                <div className="absolute top-1/2 right-[6%] -translate-y-1/2 w-16 h-16 rounded-xl bg-white/[0.06] border border-white/10 backdrop-blur-sm flex items-center justify-center animate-[pulse_3s_ease-in-out_infinite_0.75s]">
-                  <svg className="w-7 h-7 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                  </svg>
-                </div>
-
-                <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 w-16 h-16 rounded-xl bg-white/[0.06] border border-white/10 backdrop-blur-sm flex items-center justify-center animate-[pulse_3s_ease-in-out_infinite_1.5s]">
-                  <svg className="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                  </svg>
-                </div>
-
-                <div className="absolute top-1/2 left-[6%] -translate-y-1/2 w-16 h-16 rounded-xl bg-white/[0.06] border border-white/10 backdrop-blur-sm flex items-center justify-center animate-[pulse_3s_ease-in-out_infinite_2.25s]">
-                  <svg className="w-7 h-7 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                  </svg>
-                </div>
-
-                {/* Connection lines from center to nodes */}
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 520 520">
-                  <line x1="260" y1="260" x2="260" y2="75" stroke="url(#lineGrad)" strokeWidth="1" opacity="0.3" />
-                  <line x1="260" y1="260" x2="455" y2="260" stroke="url(#lineGrad)" strokeWidth="1" opacity="0.3" />
-                  <line x1="260" y1="260" x2="260" y2="445" stroke="url(#lineGrad)" strokeWidth="1" opacity="0.3" />
-                  <line x1="260" y1="260" x2="65" y2="260" stroke="url(#lineGrad)" strokeWidth="1" opacity="0.3" />
-                  <defs>
-                    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#22d3ee" stopOpacity="0" />
-                      <stop offset="50%" stopColor="#22d3ee" stopOpacity="1" />
-                      <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-
-                {/* Floating particles */}
-                <div className="absolute top-[25%] right-[20%] w-2 h-2 rounded-full bg-cyan-400 animate-ping opacity-40" />
-                <div className="absolute bottom-[30%] left-[18%] w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping opacity-30" style={{ animationDelay: '1s' }} />
-                <div className="absolute top-[35%] left-[25%] w-1 h-1 rounded-full bg-white animate-ping opacity-20" style={{ animationDelay: '2s' }} />
-                <div className="absolute bottom-[22%] right-[25%] w-1.5 h-1.5 rounded-full bg-cyan-300 animate-ping opacity-30" style={{ animationDelay: '0.5s' }} />
+                {/* Particle effects */}
+                <div className="rba-particle particle-1"></div>
+                <div className="rba-particle particle-2"></div>
+                <div className="rba-particle particle-3"></div>
+                <div className="rba-particle particle-4"></div>
+                <div className="rba-particle particle-5"></div>
+                <div className="rba-particle particle-6"></div>
               </div>
             </div>
           </div>

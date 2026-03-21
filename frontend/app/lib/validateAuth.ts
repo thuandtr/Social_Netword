@@ -3,6 +3,7 @@ import axios from "./axios";
 // Import Next.js cookies utility for server-side cookie access
 import { cookies } from 'next/headers'
 import { redirect } from "next/navigation";
+import setCookieParse from 'set-cookie-parser';
 
 // Export an async function to validate user authentication tokens
 export const validateAuth = async () => {
@@ -25,16 +26,10 @@ export const validateAuth = async () => {
             return { success: false, message: "Missing authentication tokens" };
         }
 
-        // If access token is missing but refresh token exists, let backend handle refresh
-        // if (!accessToken) {
-        //     console.log("Missing access token but refresh token exists - attempting refresh");
-        // }
-
         // Make a PUT request to the backend validation endpoint
         const res = await axios.put('/validate/tokens', {}, {
             headers: {
                 // Send both access and refresh tokens in Authorization header
-                // Use empty string for access token if missing, backend will handle refresh
                 Authorization: `access_token=${accessToken || ''}, refresh_token=${refreshToken}`,
             }
         });
@@ -43,30 +38,29 @@ export const validateAuth = async () => {
 
         if (data.message === "Tokens refreshed successfully") {
             console.log("Tokens were refreshed successfully.");
-            console.log("✅ NEW ACCESS TOKEN:", data.tokens?.accessToken);
-            console.log("✅ NEW REFRESH TOKEN:", data.tokens?.refreshToken);
-            console.log("✅ TOKEN EXPIRES IN:", data.tokens?.expiresIn);
 
-            // Check if cookies were set in the response headers
+            // Parse Set-Cookie headers properly using set-cookie-parser
+            // (avoids split('=')[1] which truncates base64 tokens with '=' padding)
             const setCookieHeader = res.headers['set-cookie'];
             if (setCookieHeader) {
-                console.log("Set-Cookie headers received:", setCookieHeader);
-                
-                const newAccessToken = setCookieHeader.find(cookie =>
-                    cookie.startsWith('access_token=')
-                )?.split('=')[1]?.split(';')[0];
-
-                const newRefreshToken = setCookieHeader.find(cookie => 
-                    cookie.startsWith('refresh_token=')
-                )?.split('=')[1]?.split(';')[0];
-
-                if(newAccessToken && newRefreshToken) {
-                    console.log("✅ New tokens received in cookies for future requests.");
-                } else {
-                    console.log("⚠️ New tokens were generated but not found in Set-Cookie headers");
+                const parsedCookies = setCookieParse(setCookieHeader);
+                for (const cookie of parsedCookies) {
+                    if (!cookie.value) continue;
+                    try {
+                        cookieStore.set(cookie.name, cookie.value, {
+                            path: '/',
+                            httpOnly: true,
+                            sameSite: 'lax',
+                            secure: process.env.NODE_ENV === 'production',
+                            maxAge: cookie.name === 'access_token' ? 3600 : 30 * 24 * 3600,
+                        });
+                        console.log(`✅ Updated cookie: ${cookie.name}`);
+                    } catch (e) {
+                        // cookies().set() only works in Server Actions / Route Handlers.
+                        // In Server Components the middleware handles refresh instead.
+                        console.warn("Could not update cookie (expected in Server Components):", cookie.name);
+                    }
                 }
-            } else {
-                console.log("⚠️ No Set-Cookie headers found in response");
             }
         }
         console.log("Validation response data:", data);

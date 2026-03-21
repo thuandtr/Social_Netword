@@ -8,26 +8,21 @@ import {
 } from "../mysql/queries";
 import { INSERT_ARTICLE, UPDATE_ARTICLE, DELETE_ARTICLE } from "../mysql/mutations";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import cloudinary from "../config/cloudinary";
 
-// ─── Multer setup for article thumbnails ───────────────────────────────────────
-const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-        const uploadPath = path.resolve(process.cwd(), "uploads/articles");
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: (_req, file, cb) => {
-        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    },
-});
+// ─── Multer setup for article thumbnails (memory → Cloudinary) ────────────────
+const uploadToCloudinary = (buffer: Buffer): Promise<string> =>
+    new Promise((resolve, reject) => {
+        cloudinary.uploader
+            .upload_stream({ folder: "articles", resource_type: "image" }, (error, result) => {
+                if (error || !result) return reject(error ?? new Error("Cloudinary upload failed"));
+                resolve(result.secure_url);
+            })
+            .end(buffer);
+    });
 
 export const uploadArticleImage = multer({
-    storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     fileFilter: (_req, file, cb) => {
         if (file.mimetype.startsWith("image/")) {
@@ -252,13 +247,13 @@ export const deleteArticle = async (req: Request, res: Response) => {
     }
 };
 
-/** POST /admin/articles/upload-image — upload a thumbnail image (admin only) */
+/** POST /admin/articles/upload-image — upload a thumbnail image to Cloudinary (admin only) */
 export const handleImageUpload = async (req: Request, res: Response) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: "No image file provided" });
         }
-        const imageUrl = `/uploads/articles/${req.file.filename}`;
+        const imageUrl = await uploadToCloudinary(req.file.buffer);
         return res.status(200).json({ url: imageUrl });
     } catch (error) {
         console.error("handleImageUpload error:", error);

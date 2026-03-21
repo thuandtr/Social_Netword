@@ -80,6 +80,9 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1/auth
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
     volumes:
       - ./backend/uploads:/app/uploads
     depends_on:

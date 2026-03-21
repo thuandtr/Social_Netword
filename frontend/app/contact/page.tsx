@@ -200,7 +200,7 @@ export default function ContactPage() {
                       name="name"
                       required
                       placeholder="Nguyễn Văn A"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-500/50"
                     />
                   </div>
                   <div>
@@ -213,7 +213,7 @@ export default function ContactPage() {
                       name="phone"
                       required
                       placeholder="0901 234 567"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-500/50"
                     />
                   </div>
                 </div>
@@ -229,7 +229,7 @@ export default function ContactPage() {
                       name="email"
                       required
                       placeholder="email@example.com"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-500/50"
                     />
                   </div>
                   <div>
@@ -241,7 +241,7 @@ export default function ContactPage() {
                       id="contactCompany"
                       name="company"
                       placeholder="Tên doanh nghiệp"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-500/50"
                     />
                   </div>
                 </div>
@@ -256,7 +256,7 @@ export default function ContactPage() {
                     required
                     rows={5}
                     placeholder="Nhập nội dung tin nhắn của bạn..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-vertical"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-vertical  placeholder:text-gray-500/50"
                   />
                 </div>
 
