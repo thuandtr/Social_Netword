@@ -1,5 +1,13 @@
 'use client';
 
+/*--------------------------------------------------------------------------------
+
+- Minh Vu them tinh nang day thong tin lien he cua Khach hang
+
+
+--------------------------------------------------------------------------------*/ 
+
+
 import { useState, useRef, FormEvent } from 'react';
 
 /* ── Dot-grid background (shared pattern from homepage/about) ── */
