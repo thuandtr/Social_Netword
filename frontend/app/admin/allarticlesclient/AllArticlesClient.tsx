@@ -21,7 +21,7 @@ function formatDate(dateStr: string) {
   })
 }
 
-export default function AdminDashboardClient() {
+export default function AllArticlesClient() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

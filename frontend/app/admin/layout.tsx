@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/admin/allarticlesclient', label: 'All Articles', icon: '📊' },
   { href: '/admin/articles/new', label: 'New Article', icon: '✏️' },
   { href: '/admin/media', label: 'Media', icon: '🖼️' },
 ]
